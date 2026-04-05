@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -40,19 +41,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
 
     return Scaffold(
       backgroundColor: LivTheme.bg,
-      appBar: AppBar(title: const Text('Settings'), backgroundColor: Colors.white),
+      appBar: AppBar(title: Text(l.t('settings')), backgroundColor: Colors.white),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Language ────────────────────────────────────────────────────
+          _Section(title: l.t('language'), children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _LangOption(
+                    label: 'English',
+                    flag: '🇬🇧',
+                    selected: state.locale == AppLocale.en,
+                    onTap: () => state.setLocale(AppLocale.en),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _LangOption(
+                    label: 'العربية',
+                    flag: '🇸🇦',
+                    selected: state.locale == AppLocale.ar,
+                    onTap: () => state.setLocale(AppLocale.ar),
+                  ),
+                ),
+              ],
+            ),
+          ]),
+
+          const SizedBox(height: 16),
+
           // ── Connection ──────────────────────────────────────────────────
-          _Section(title: 'Server connection', children: [
-            const Text(
-              'Enter the IP address and port of your LIV Node.js gateway server. '
-              'Make sure your phone is on the same Wi-Fi network as the server.',
-              style: TextStyle(fontSize: 13, color: LivTheme.muted),
+          _Section(title: l.t('server_connection'), children: [
+            Text(
+              l.t('server_desc'),
+              style: const TextStyle(fontSize: 13, color: LivTheme.muted),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -60,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               keyboardType: TextInputType.url,
               autocorrect: false,
               decoration: InputDecoration(
-                labelText: 'Server URL',
+                labelText: l.t('server_url'),
                 hintText: 'http://192.168.1.100:3000',
                 prefixIcon: const Icon(Icons.lan_outlined),
                 filled: true,
@@ -75,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: _saved
                     ? const Icon(Icons.check, size: 18)
                     : const Icon(Icons.save_outlined, size: 18),
-                label: Text(_saved ? 'Saved!' : 'Connect'),
+                label: Text(_saved ? l.t('saved') : l.t('connect')),
                 style: FilledButton.styleFrom(
                   backgroundColor: _saved ? LivTheme.ok : LivTheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -89,35 +117,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
 
           // ── Status ──────────────────────────────────────────────────────
-          _Section(title: 'Connection status', children: [
+          _Section(title: l.t('connection_status'), children: [
             _StatusRow(
-              label: 'Server',
-              value: state.connected ? 'Connected' : 'Disconnected',
+              label: l.t('server'),
+              value: state.connected ? l.t('connected') : l.t('disconnected'),
               color: state.connected ? LivTheme.ok : LivTheme.danger,
             ),
             _StatusRow(
-              label: 'Data mode',
-              value: state.useDemoData ? 'Demo (seed data)' : 'Live',
+              label: l.t('data_mode'),
+              value: state.useDemoData ? l.t('demo_seed') : l.t('live'),
               color: state.useDemoData ? LivTheme.gold : LivTheme.ok,
             ),
-            _StatusRow(label: 'Gateway ID', value: state.gatewayId),
-            _StatusRow(label: 'UDP status', value: state.udpStatus),
-            _StatusRow(label: 'MQTT status', value: state.mqttStatus),
+            _StatusRow(label: l.t('gateway_id'), value: state.gatewayId),
+            _StatusRow(label: l.t('udp_status'), value: state.udpStatus),
+            _StatusRow(label: l.t('mqtt_status'), value: state.mqttStatus),
           ]),
 
           const SizedBox(height: 16),
 
           // ── Demo reset ──────────────────────────────────────────────────
-          _Section(title: 'Demo data', children: [
-            const Text(
-              'Reset the server\'s seeded demo state back to initial values. '
-              'This calls POST /api/demo/reset on the connected server.',
-              style: TextStyle(fontSize: 13, color: LivTheme.muted),
+          _Section(title: l.t('demo_data'), children: [
+            Text(
+              l.t('demo_reset_desc'),
+              style: const TextStyle(fontSize: 13, color: LivTheme.muted),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               icon: const Icon(Icons.refresh),
-              label: const Text('Reset demo state'),
+              label: Text(l.t('reset_demo')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: LivTheme.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -127,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 await state.resetDemo();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Demo state reset ✓')),
+                    SnackBar(content: Text(l.t('demo_reset_ok'))),
                   );
                 }
               },
@@ -137,11 +164,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
 
           // ── About ───────────────────────────────────────────────────────
-          _Section(title: 'About', children: [
-            _InfoRow('App', 'LIV Smart Farm Dashboard'),
-            _InfoRow('Version', '1.0.0'),
-            _InfoRow('Backend', 'Node.js · Express · Socket.IO · AWS IoT'),
-            _InfoRow('Hardware', 'ESP32 → Farm PC → AWS'),
+          _Section(title: l.t('about'), children: [
+            _InfoRow(l.t('app_label'), 'LIV Smart Farm Dashboard'),
+            _InfoRow(l.t('version'), '1.0.0'),
+            _InfoRow(l.t('backend'), 'Node.js · Express · Socket.IO · AWS IoT'),
+            _InfoRow(l.t('hardware'), 'ESP32 → Farm PC → AWS'),
             const SizedBox(height: 8),
             const Text(
               'Routes:\n'
@@ -158,6 +185,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+}
+
+// ── Language option card ──────────────────────────────────────────────────────
+class _LangOption extends StatelessWidget {
+  final String label;
+  final String flag;
+  final bool selected;
+  final VoidCallback onTap;
+  const _LangOption({
+    required this.label,
+    required this.flag,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: selected ? LivTheme.primary.withOpacity(0.08) : Colors.transparent,
+          border: Border.all(
+            color: selected ? LivTheme.primary : LivTheme.line,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(flag, style: const TextStyle(fontSize: 26)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                color: selected ? LivTheme.primary : LivTheme.text,
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(height: 4),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: LivTheme.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

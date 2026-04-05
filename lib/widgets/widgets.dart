@@ -31,7 +31,8 @@ class HealthBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(status, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(status,
+          style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -63,7 +64,12 @@ class KpiCard extends StatelessWidget {
   final String value;
   final String? hint;
   final Color? valueColor;
-  const KpiCard({super.key, required this.label, required this.value, this.hint, this.valueColor});
+  const KpiCard(
+      {super.key,
+      required this.label,
+      required this.value,
+      this.hint,
+      this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +79,11 @@ class KpiCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: LivTheme.muted, fontWeight: FontWeight.w500)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: LivTheme.muted,
+                    fontWeight: FontWeight.w500)),
             const SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
@@ -81,7 +91,8 @@ class KpiCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     color: valueColor ?? LivTheme.primary)),
             if (hint != null)
-              Text(hint!, style: const TextStyle(fontSize: 11, color: LivTheme.muted)),
+              Text(hint!,
+                  style: const TextStyle(fontSize: 11, color: LivTheme.muted)),
           ],
         ),
       ),
@@ -105,9 +116,14 @@ class SectionHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: LivTheme.primary)),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: LivTheme.primary)),
                 if (subtitle != null)
-                  Text(subtitle!, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+                  Text(subtitle!,
+                      style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
               ],
             ),
           ),
@@ -119,7 +135,8 @@ class SectionHeader extends StatelessWidget {
 
 // ── Demo banner ───────────────────────────────────────────────────────────────
 class DemoBanner extends StatelessWidget {
-  const DemoBanner({super.key});
+  final String? message;
+  const DemoBanner({super.key, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +152,12 @@ class DemoBanner extends StatelessWidget {
         children: [
           const Icon(Icons.science_outlined, color: LivTheme.gold, size: 18),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Demo mode — connect to a LIV gateway in Settings to see live data.',
-              style: TextStyle(color: LivTheme.gold, fontSize: 12, fontWeight: FontWeight.w500),
+              message ??
+                  'Demo mode — connect to a LIV gateway in Settings to see live data.',
+              style: const TextStyle(
+                  color: LivTheme.gold, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -156,7 +175,8 @@ class TraitBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = (value / 10).clamp(0.0, 1.0);
-    Color barColor = pct > 0.75 ? LivTheme.ok : pct > 0.5 ? LivTheme.accent : LivTheme.warn;
+    Color barColor =
+        pct > 0.75 ? LivTheme.ok : pct > 0.5 ? LivTheme.accent : LivTheme.warn;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
@@ -165,8 +185,10 @@ class TraitBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
-              Text(value.toStringAsFixed(1), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              Text(label,
+                  style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+              Text(value.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 4),
@@ -220,12 +242,16 @@ class MetricTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF99ADCF), fontWeight: FontWeight.w500)),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF99ADCF),
+                      fontWeight: FontWeight.w500)),
               if (badgeColor != null)
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle),
+                  decoration:
+                      BoxDecoration(color: badgeColor, shape: BoxShape.circle),
                 ),
             ],
           ),
@@ -233,17 +259,24 @@ class MetricTile extends StatelessWidget {
           RichText(
             text: TextSpan(
               text: value,
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white),
+              style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white),
               children: [
                 TextSpan(
                   text: ' $unit',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Color(0xFF99ADCF)),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF99ADCF)),
                 )
               ],
             ),
           ),
           if (sub.isNotEmpty)
-            Text(sub, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+            Text(sub,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
         ],
       ),
     );

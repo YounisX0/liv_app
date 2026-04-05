@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'services/app_state.dart';
 import 'theme/liv_theme.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/overview_screen.dart';
 import 'screens/cows_screen.dart';
 import 'screens/breeding_screen.dart';
@@ -22,10 +24,29 @@ class LivApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final locale = state.locale;
+
     return MaterialApp(
       title: 'LIV Dashboard',
       debugShowCheckedModeBanner: false,
       theme: LivTheme.light,
+      // ── Locale & RTL ──────────────────────────────────────────────────────
+      locale: Locale(locale.code),
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      localizationsDelegates: [
+        AppLocalizationsDelegate(locale),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) {
+        // Wrap with Directionality so all widgets respect RTL/LTR
+        return Directionality(
+          textDirection: locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
+          child: child!,
+        );
+      },
       home: const AppShell(),
     );
   }
@@ -42,28 +63,26 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _tab = 0;
 
-  // Tab definitions
-  static const _tabs = [
-    _TabDef(label: 'Overview',  icon: Icons.dashboard_outlined,     activeIcon: Icons.dashboard),
-    _TabDef(label: 'Herd',      icon: Icons.pets_outlined,          activeIcon: Icons.pets),
-    _TabDef(label: 'Breeding',  icon: Icons.favorite_outline,       activeIcon: Icons.favorite),
-    _TabDef(label: 'Gateway',   icon: Icons.router_outlined,        activeIcon: Icons.router),
-    _TabDef(label: 'Settings',  icon: Icons.settings_outlined,      activeIcon: Icons.settings),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
+
+    final tabs = [
+      _TabDef(label: l.t('nav_overview'), icon: Icons.dashboard_outlined,  activeIcon: Icons.dashboard),
+      _TabDef(label: l.t('nav_herd'),     icon: Icons.pets_outlined,        activeIcon: Icons.pets),
+      _TabDef(label: l.t('nav_breeding'), icon: Icons.favorite_outline,     activeIcon: Icons.favorite),
+      _TabDef(label: l.t('nav_gateway'),  icon: Icons.router_outlined,      activeIcon: Icons.router),
+      _TabDef(label: l.t('nav_settings'), icon: Icons.settings_outlined,    activeIcon: Icons.settings),
+    ];
 
     return Scaffold(
-      // ── Top app bar ──────────────────────────────────────────────────────
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            // LIV logo mark
             Container(
               width: 34,
               height: 34,
@@ -93,17 +112,58 @@ class _AppShellState extends State<AppShell> {
                         fontWeight: FontWeight.w900,
                         color: LivTheme.primary,
                         height: 1.1)),
-                Text(_tabs[_tab].label,
+                Text(tabs[_tab].label,
                     style: const TextStyle(
-                        fontSize: 11, color: LivTheme.muted, fontWeight: FontWeight.w400, height: 1)),
+                        fontSize: 11,
+                        color: LivTheme.muted,
+                        fontWeight: FontWeight.w400,
+                        height: 1)),
               ],
             ),
           ],
         ),
         actions: [
-          // Connection indicator
+          // ── Language toggle button ─────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 4),
+            child: TextButton(
+              onPressed: () {
+                final next = state.locale == AppLocale.en ? AppLocale.ar : AppLocale.en;
+                state.setLocale(next);
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: LivTheme.primary.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(20),
+                  color: LivTheme.primary.withOpacity(0.06),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🌐', style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 4),
+                    Text(
+                      state.locale == AppLocale.en ? 'AR' : 'EN',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: LivTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // ── Connection indicator ───────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
             child: Row(
               children: [
                 Container(
@@ -116,7 +176,7 @@ class _AppShellState extends State<AppShell> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  state.useDemoData ? 'Demo' : 'Live',
+                  state.useDemoData ? l.t('demo') : l.t('live'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -128,8 +188,6 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
-
-      // ── Body ────────────────────────────────────────────────────────────
       body: IndexedStack(
         index: _tab,
         children: const [
@@ -140,8 +198,6 @@ class _AppShellState extends State<AppShell> {
           SettingsScreen(),
         ],
       ),
-
-      // ── Bottom nav ───────────────────────────────────────────────────────
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
@@ -151,7 +207,7 @@ class _AppShellState extends State<AppShell> {
         shadowColor: LivTheme.line,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
-          for (final t in _tabs)
+          for (final t in tabs)
             NavigationDestination(
               icon: Icon(t.icon),
               selectedIcon: Icon(t.activeIcon, color: LivTheme.primary),

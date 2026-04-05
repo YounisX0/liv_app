@@ -1,0 +1,387 @@
+// ─── app_localizations.dart ────────────────────────────────────────────────────
+// Simple key-value localization for English ↔ Arabic.
+// Add more locales by adding an entry to _translations.
+
+import 'package:flutter/material.dart';
+
+/// Supported locales
+enum AppLocale { en, ar }
+
+extension AppLocaleExt on AppLocale {
+  String get code => name; // 'en' | 'ar'
+  String get label => this == AppLocale.ar ? 'العربية' : 'English';
+  bool get isRtl => this == AppLocale.ar;
+}
+
+class AppLocalizations {
+  final AppLocale locale;
+  const AppLocalizations(this.locale);
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)
+        ?? const AppLocalizations(AppLocale.en);
+  }
+
+  String t(String key) =>
+      _translations[locale]?[key] ?? _translations[AppLocale.en]![key] ?? key;
+
+  // ── All UI strings ──────────────────────────────────────────────────────────
+  static const Map<AppLocale, Map<String, String>> _translations = {
+    AppLocale.en: {
+      // App / Navigation
+      'app_name': 'LIV Dashboard',
+      'nav_overview': 'Overview',
+      'nav_herd': 'Herd',
+      'nav_breeding': 'Breeding',
+      'nav_gateway': 'Gateway',
+      'nav_settings': 'Settings',
+      'demo': 'Demo',
+      'live': 'Live',
+
+      // Overview Screen
+      'total_cows': 'Total cows',
+      'in_herd': 'In herd',
+      'healthy': 'Healthy',
+      'all_clear': 'All clear',
+      'check_others': 'Check others',
+      'active_alerts': 'Active alerts',
+      'needs_attention': 'Needs attention',
+      'devices_online': 'Devices online',
+      'of_total': 'of {n} total',
+      'herd_health_breakdown': 'Herd health breakdown',
+      'cow': 'cow',
+      'cows': 'cows',
+      'recent_alerts': 'Recent alerts',
+      'latest_6': 'Latest 6',
+      'no_alerts': 'No alerts — herd is healthy!',
+      'herd_overview': 'Herd overview',
+      'demo_banner': 'Demo mode — connect to a LIV gateway in Settings to see live data.',
+      'min_ago': '{n}m ago',
+      'hr_ago': '{n}h ago',
+
+      // Cows Screen
+      'search_hint': 'Search cows by name, ID, or breed…',
+
+      // Cow Profile Screen
+      'cow_not_found': 'Cow not found',
+      'could_not_load': 'Could not load cow data.',
+      'breeding_btn': 'Breeding',
+      'live_vitals': 'Live vitals',
+      'temperature': 'Temperature',
+      'heart_rate': 'Heart rate',
+      'spo2': 'SpO₂',
+      'activity': 'Activity',
+      'temp_trend': 'Temperature trend',
+      'iot_device': 'IoT device',
+      'device_id': 'Device ID',
+      'status': 'Status',
+      'battery': 'Battery',
+      'signal': 'Signal',
+      'last_packet': 'Last packet',
+      'sec_ago': '{n}s ago',
+      'fertility_data': 'Fertility data',
+      'fertile_window_banner': 'In fertile window — breeding recommended',
+      'last_estrus': 'Last estrus',
+      'predicted_in': 'Predicted in',
+      'cycle_length': 'Cycle length',
+      'conception_rate': 'Conception rate',
+      'body_condition': 'Body condition',
+      'inbreeding_risk': 'Inbreeding risk',
+      'days_ago': '{n} days ago',
+      'days': 'days',
+      'no_data': 'No data',
+
+      // Breeding Screen
+      'breeding_advisor': 'Breeding Advisor',
+      'select_cow': 'Select cow',
+      'select_sire': 'Select sire',
+      'breeding_score': 'Breeding score',
+      'cow_profile': 'Cow profile',
+      'health': 'Health',
+      'body_condition_score': 'Body condition score',
+      'fertile_window': 'Fertile window',
+      'yes': '✅ Yes',
+      'not_yet': '⏳ Not yet',
+      'sire_traits': 'Sire traits',
+      'fertility': 'Fertility',
+      'disease_resistance': 'Disease Resistance',
+      'temperament': 'Temperament',
+      'milk_yield': 'Milk Yield',
+      'calving_ease': 'Calving Ease',
+      'rec_protocol': 'Recommended protocol',
+      'step_confirm': 'Confirm estrus',
+      'step_confirm_body': 'Standing heat observed, elevated activity, restlessness.',
+      'step_check_device': 'Check device',
+      'step_check_device_body': 'Verify {id} is online and sensors are reading correctly.',
+      'step_use_batch': 'Use batch',
+      'step_use_batch_body': '{batch} from {sire}.',
+      'step_record': 'Record',
+      'step_record_body': 'Log insemination in herd management software.',
+      'rec_not_fertile': '⏳',
+      'rec_not_fertile_title': 'Not in fertile window',
+      'rec_not_fertile_body': 'Wait for the next estrus cycle before insemination.',
+      'rec_strong': '✅',
+      'rec_strong_title': 'Strongly Recommended',
+      'rec_strong_body': 'Excellent match — schedule insemination now.',
+      'rec_good': '👍',
+      'rec_good_title': 'Recommended',
+      'rec_good_body': 'Good compatibility. Proceed when cow is confirmed in estrus.',
+      'rec_caution': '⚠️',
+      'rec_caution_title': 'Proceed with Caution',
+      'rec_caution_body': 'Acceptable match. Address health concerns first.',
+      'rec_no': '❌',
+      'rec_no_title': 'Not Recommended',
+      'rec_no_body': 'Low score. Consider a different sire or wait until health improves.',
+
+      // Gateway Screen
+      'gateway_monitor': 'LIV Gateway Monitor',
+      'realtime_telemetry': 'Real-time sensor telemetry',
+      'udp': 'UDP',
+      'mqtt': 'MQTT',
+      'last': 'Last',
+      'packets': 'Packets',
+      'published': 'Published',
+      'bad_json': 'Bad JSON',
+      'gateway': 'Gateway',
+      'temp_celsius': 'Temperature',
+      'body_object': 'Body / object',
+      'hr_i2c': 'Heart Rate I2C',
+      'ear_clip': 'Ear-clip / I2C',
+      'spo2_i2c': 'SpO₂ I2C',
+      'oxygen_sat': 'Oxygen saturation',
+      'hr_uart': 'Heart Rate UART',
+      'backup_uart': 'Backup UART',
+      'spo2_uart': 'SpO₂ UART',
+      'uart_channel': 'UART channel',
+      'accel_mag': 'Accel Magnitude',
+      'from_xyz': 'From X/Y/Z',
+      'gyro_mag': 'Gyro Magnitude',
+      'gps': 'GPS',
+      'no_gps': 'No GPS lock',
+      'vitals_trend': 'Vitals trend',
+      'vitals_legend': 'Temp · HR · SpO₂',
+      'motion_trend': 'Motion trend',
+      'motion_legend': 'Accel + Gyro magnitude',
+      'per_axis': 'Per-axis motion',
+      'direct_latest': 'Direct from latest packet',
+      'live_feed': 'Live packet feed',
+      'last_packets': 'Last {n} packets',
+      'waiting': 'Waiting for data…',
+
+      // Settings Screen
+      'settings': 'Settings',
+      'server_connection': 'Server connection',
+      'server_desc': 'Enter the IP address and port of your LIV Node.js gateway server. Make sure your phone is on the same Wi-Fi network as the server.',
+      'server_url': 'Server URL',
+      'connect': 'Connect',
+      'saved': 'Saved!',
+      'connection_status': 'Connection status',
+      'server': 'Server',
+      'connected': 'Connected',
+      'disconnected': 'Disconnected',
+      'data_mode': 'Data mode',
+      'demo_seed': 'Demo (seed data)',
+      'gateway_id': 'Gateway ID',
+      'udp_status': 'UDP status',
+      'mqtt_status': 'MQTT status',
+      'demo_data': 'Demo data',
+      'demo_reset_desc': 'Reset the server\'s seeded demo state back to initial values. This calls POST /api/demo/reset on the connected server.',
+      'reset_demo': 'Reset demo state',
+      'demo_reset_ok': 'Demo state reset ✓',
+      'about': 'About',
+      'app_label': 'App',
+      'version': 'Version',
+      'backend': 'Backend',
+      'hardware': 'Hardware',
+      'language': 'Language',
+      'change_language': 'Change Language',
+    },
+
+    // ── Arabic translations ──────────────────────────────────────────────────
+    AppLocale.ar: {
+      // App / Navigation
+      'app_name': 'لوحة LIV',
+      'nav_overview': 'نظرة عامة',
+      'nav_herd': 'القطيع',
+      'nav_breeding': 'التربية',
+      'nav_gateway': 'البوابة',
+      'nav_settings': 'الإعدادات',
+      'demo': 'تجريبي',
+      'live': 'مباشر',
+
+      // Overview Screen
+      'total_cows': 'إجمالي الأبقار',
+      'in_herd': 'في القطيع',
+      'healthy': 'بصحة جيدة',
+      'all_clear': 'كل شيء طبيعي',
+      'check_others': 'تحقق من الأخريات',
+      'active_alerts': 'التنبيهات النشطة',
+      'needs_attention': 'تحتاج إلى اهتمام',
+      'devices_online': 'الأجهزة المتصلة',
+      'of_total': 'من أصل {n}',
+      'herd_health_breakdown': 'توزيع صحة القطيع',
+      'cow': 'بقرة',
+      'cows': 'أبقار',
+      'recent_alerts': 'التنبيهات الأخيرة',
+      'latest_6': 'آخر 6',
+      'no_alerts': 'لا تنبيهات — القطيع بصحة جيدة!',
+      'herd_overview': 'نظرة عامة على القطيع',
+      'demo_banner': 'وضع تجريبي — اتصل ببوابة LIV في الإعدادات لرؤية البيانات المباشرة.',
+      'min_ago': 'منذ {n} دقيقة',
+      'hr_ago': 'منذ {n} ساعة',
+
+      // Cows Screen
+      'search_hint': 'ابحث عن الأبقار بالاسم أو الرقم أو السلالة…',
+
+      // Cow Profile Screen
+      'cow_not_found': 'البقرة غير موجودة',
+      'could_not_load': 'تعذّر تحميل بيانات البقرة.',
+      'breeding_btn': 'التربية',
+      'live_vitals': 'الإشارات الحيوية المباشرة',
+      'temperature': 'درجة الحرارة',
+      'heart_rate': 'معدل ضربات القلب',
+      'spo2': 'تشبع الأكسجين SpO₂',
+      'activity': 'النشاط',
+      'temp_trend': 'اتجاه درجة الحرارة',
+      'iot_device': 'جهاز IoT',
+      'device_id': 'معرّف الجهاز',
+      'status': 'الحالة',
+      'battery': 'البطارية',
+      'signal': 'الإشارة',
+      'last_packet': 'آخر حزمة بيانات',
+      'sec_ago': 'منذ {n} ثانية',
+      'fertility_data': 'بيانات الخصوبة',
+      'fertile_window_banner': 'في نافذة الخصوبة — يُنصح بالتلقيح',
+      'last_estrus': 'آخر شبق',
+      'predicted_in': 'متوقع خلال',
+      'cycle_length': 'طول الدورة',
+      'conception_rate': 'معدل الإخصاب',
+      'body_condition': 'درجة الحالة الجسدية',
+      'inbreeding_risk': 'خطر التهجين الداخلي',
+      'days_ago': 'منذ {n} أيام',
+      'days': 'أيام',
+      'no_data': 'لا توجد بيانات',
+
+      // Breeding Screen
+      'breeding_advisor': 'مستشار التربية',
+      'select_cow': 'اختر بقرة',
+      'select_sire': 'اختر الثور',
+      'breeding_score': 'درجة التربية',
+      'cow_profile': 'ملف البقرة',
+      'health': 'الصحة',
+      'body_condition_score': 'درجة الحالة الجسدية',
+      'fertile_window': 'نافذة الخصوبة',
+      'yes': '✅ نعم',
+      'not_yet': '⏳ لم يحن الوقت',
+      'sire_traits': 'صفات الثور',
+      'fertility': 'الخصوبة',
+      'disease_resistance': 'مقاومة الأمراض',
+      'temperament': 'المزاج',
+      'milk_yield': 'إنتاج الحليب',
+      'calving_ease': 'سهولة الولادة',
+      'rec_protocol': 'البروتوكول الموصى به',
+      'step_confirm': 'تأكيد الشبق',
+      'step_confirm_body': 'لوحظ حرارة واضحة، نشاط مرتفع، اضطراب.',
+      'step_check_device': 'فحص الجهاز',
+      'step_check_device_body': 'تحقق من أن {id} متصل والمستشعرات تعمل.',
+      'step_use_batch': 'استخدام الدفعة',
+      'step_use_batch_body': '{batch} من {sire}.',
+      'step_record': 'التسجيل',
+      'step_record_body': 'سجّل التلقيح في برنامج إدارة القطيع.',
+      'rec_not_fertile': '⏳',
+      'rec_not_fertile_title': 'ليست في نافذة الخصوبة',
+      'rec_not_fertile_body': 'انتظر دورة الشبق القادمة قبل التلقيح.',
+      'rec_strong': '✅',
+      'rec_strong_title': 'موصى به بشدة',
+      'rec_strong_body': 'تطابق ممتاز — جدوِل التلقيح الآن.',
+      'rec_good': '👍',
+      'rec_good_title': 'موصى به',
+      'rec_good_body': 'توافق جيد. تابع عند تأكيد الشبق.',
+      'rec_caution': '⚠️',
+      'rec_caution_title': 'تابع بحذر',
+      'rec_caution_body': 'تطابق مقبول. عالج المخاوف الصحية أولاً.',
+      'rec_no': '❌',
+      'rec_no_title': 'غير موصى به',
+      'rec_no_body': 'درجة منخفضة. فكر في ثور آخر أو انتظر تحسن الصحة.',
+
+      // Gateway Screen
+      'gateway_monitor': 'مراقب بوابة LIV',
+      'realtime_telemetry': 'قياسات عن بُعد في الوقت الفعلي',
+      'udp': 'UDP',
+      'mqtt': 'MQTT',
+      'last': 'آخر',
+      'packets': 'الحزم',
+      'published': 'المنشورة',
+      'bad_json': 'JSON خاطئ',
+      'gateway': 'البوابة',
+      'temp_celsius': 'درجة الحرارة',
+      'body_object': 'الجسم / الكائن',
+      'hr_i2c': 'معدل القلب I2C',
+      'ear_clip': 'مشبك الأذن / I2C',
+      'spo2_i2c': 'SpO₂ I2C',
+      'oxygen_sat': 'تشبع الأكسجين',
+      'hr_uart': 'معدل القلب UART',
+      'backup_uart': 'نسخة احتياطية UART',
+      'spo2_uart': 'SpO₂ UART',
+      'uart_channel': 'قناة UART',
+      'accel_mag': 'مقدار التسارع',
+      'from_xyz': 'من X/Y/Z',
+      'gyro_mag': 'مقدار الجيروسكوب',
+      'gps': 'GPS',
+      'no_gps': 'لا يوجد إشارة GPS',
+      'vitals_trend': 'اتجاه الإشارات الحيوية',
+      'vitals_legend': 'الحرارة · القلب · الأكسجين',
+      'motion_trend': 'اتجاه الحركة',
+      'motion_legend': 'تسارع + جيروسكوب',
+      'per_axis': 'حركة المحاور',
+      'direct_latest': 'من آخر حزمة بيانات',
+      'live_feed': 'تغذية الحزم المباشرة',
+      'last_packets': 'آخر {n} حزمة',
+      'waiting': 'انتظار البيانات…',
+
+      // Settings Screen
+      'settings': 'الإعدادات',
+      'server_connection': 'اتصال الخادم',
+      'server_desc': 'أدخل عنوان IP والمنفذ لخادم LIV Node.js. تأكد من أن هاتفك على نفس شبكة Wi-Fi.',
+      'server_url': 'رابط الخادم',
+      'connect': 'اتصال',
+      'saved': 'تم الحفظ!',
+      'connection_status': 'حالة الاتصال',
+      'server': 'الخادم',
+      'connected': 'متصل',
+      'disconnected': 'غير متصل',
+      'data_mode': 'وضع البيانات',
+      'demo_seed': 'تجريبي (بيانات أولية)',
+      'gateway_id': 'معرّف البوابة',
+      'udp_status': 'حالة UDP',
+      'mqtt_status': 'حالة MQTT',
+      'demo_data': 'البيانات التجريبية',
+      'demo_reset_desc': 'إعادة تعيين الحالة التجريبية إلى القيم الأولية. يستدعي POST /api/demo/reset.',
+      'reset_demo': 'إعادة تعيين التجريبي',
+      'demo_reset_ok': 'تمت إعادة تعيين التجريبي ✓',
+      'about': 'حول',
+      'app_label': 'التطبيق',
+      'version': 'الإصدار',
+      'backend': 'الخلفية',
+      'hardware': 'الأجهزة',
+      'language': 'اللغة',
+      'change_language': 'تغيير اللغة',
+    },
+  };
+}
+
+/// Flutter localization delegate
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  final AppLocale locale;
+  const AppLocalizationsDelegate(this.locale);
+
+  @override
+  bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async =>
+      AppLocalizations(this.locale);
+
+  @override
+  bool shouldReload(AppLocalizationsDelegate old) => old.locale != locale;
+}

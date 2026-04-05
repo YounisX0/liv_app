@@ -4,6 +4,7 @@ import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../widgets/widgets.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 import 'cow_profile_screen.dart';
 
 class CowsScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _CowsScreenState extends State<CowsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final q = _query.trim().toLowerCase();
     final filtered = state.cows.where((c) {
       if (q.isEmpty) return true;
@@ -30,13 +32,12 @@ class _CowsScreenState extends State<CowsScreen> {
 
     return Column(
       children: [
-        // Search bar
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Search cows by name, ID, or breed…',
+              hintText: l.t('search_hint'),
               prefixIcon: const Icon(Icons.search, color: LivTheme.muted),
               filled: true,
               fillColor: LivTheme.bg,
@@ -49,12 +50,11 @@ class _CowsScreenState extends State<CowsScreen> {
             onChanged: (v) => setState(() => _query = v),
           ),
         ),
-        // List
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: filtered.length,
-            itemBuilder: (ctx, i) => _CowCard(cow: filtered[i]),
+            itemBuilder: (ctx, i) => _CowCard(cow: filtered[i], l: l),
           ),
         ),
       ],
@@ -64,7 +64,8 @@ class _CowsScreenState extends State<CowsScreen> {
 
 class _CowCard extends StatelessWidget {
   final Cow cow;
-  const _CowCard({required this.cow});
+  final AppLocalizations l;
+  const _CowCard({required this.cow, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +110,6 @@ class _CowCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              // Vitals row
               Row(
                 children: [
                   _VitalChip(icon: '🌡️', value: '${cow.vitals.tempC.toStringAsFixed(1)}°C'),
@@ -120,7 +120,6 @@ class _CowCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              // Device & fertility row
               Row(
                 children: [
                   if (device != null) ...[
@@ -140,8 +139,9 @@ class _CowCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: LivTheme.gold.withOpacity(0.5)),
                       ),
-                      child: const Text('🌸 Fertile window',
-                          style: TextStyle(fontSize: 11, color: LivTheme.gold, fontWeight: FontWeight.w600)),
+                      child: Text('🌸 ${l.t('fertile_window')}',
+                          style: const TextStyle(
+                              fontSize: 11, color: LivTheme.gold, fontWeight: FontWeight.w600)),
                     ),
                   ],
                   const Spacer(),

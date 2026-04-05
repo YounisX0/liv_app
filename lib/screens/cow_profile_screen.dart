@@ -5,6 +5,7 @@ import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../widgets/widgets.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 import 'breeding_screen.dart';
 
 class CowProfileScreen extends StatelessWidget {
@@ -14,6 +15,7 @@ class CowProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final cow = state.cows.where((c) => c.id == cowId).firstOrNull;
     final device = cow != null
         ? state.devices.where((d) => d.id == cow.deviceId).firstOrNull
@@ -21,8 +23,8 @@ class CowProfileScreen extends StatelessWidget {
 
     if (cow == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cow not found')),
-        body: const Center(child: Text('Could not load cow data.')),
+        appBar: AppBar(title: Text(l.t('cow_not_found'))),
+        body: Center(child: Text(l.t('could_not_load'))),
       );
     }
 
@@ -38,7 +40,7 @@ class CowProfileScreen extends StatelessWidget {
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.favorite_outlined, size: 18),
-            label: const Text('Breeding'),
+            label: Text(l.t('breeding_btn')),
             onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -74,12 +76,15 @@ class CowProfileScreen extends StatelessWidget {
                           Row(children: [
                             Text(cow.name,
                                 style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.w800, color: LivTheme.primary)),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: LivTheme.primary)),
                             const SizedBox(width: 8),
                             HealthBadge(cow.healthStatus),
                           ]),
                           const SizedBox(height: 4),
-                          Text('${cow.breed}  ·  ${cow.ageYears.toStringAsFixed(1)} yrs  ·  Parity ${cow.parity}',
+                          Text(
+                              '${cow.breed}  ·  ${cow.ageYears.toStringAsFixed(1)} yrs  ·  Parity ${cow.parity}',
                               style: const TextStyle(fontSize: 13, color: LivTheme.muted)),
                           Text('Device: ${cow.deviceId}',
                               style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
@@ -92,7 +97,7 @@ class CowProfileScreen extends StatelessWidget {
             ),
 
             // ── Vitals grid ─────────────────────────────────────────────────
-            const SectionHeader(title: 'Live vitals'),
+            SectionHeader(title: l.t('live_vitals')),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -102,54 +107,56 @@ class CowProfileScreen extends StatelessWidget {
               childAspectRatio: 1.7,
               children: [
                 KpiCard(
-                  label: 'Temperature',
+                  label: l.t('temperature'),
                   value: '${cow.vitals.tempC.toStringAsFixed(1)}°C',
                   valueColor: cow.vitals.tempC > 39.5 ? LivTheme.danger : LivTheme.ok,
                 ),
                 KpiCard(
-                  label: 'Heart rate',
+                  label: l.t('heart_rate'),
                   value: '${cow.vitals.hrBpm.toInt()} bpm',
                   valueColor: cow.vitals.hrBpm > 100 ? LivTheme.warn : LivTheme.text,
                 ),
                 KpiCard(
-                  label: 'SpO₂',
+                  label: l.t('spo2'),
                   value: '${cow.vitals.spO2.toInt()}%',
                   valueColor: cow.vitals.spO2 < 92 ? LivTheme.danger : LivTheme.ok,
                 ),
                 KpiCard(
-                  label: 'Activity',
+                  label: l.t('activity'),
                   value: '${cow.vitals.activity.toInt()}%',
                 ),
               ],
             ),
 
             // ── Temp trend chart ────────────────────────────────────────────
-            const SectionHeader(title: 'Temperature trend'),
+            SectionHeader(title: l.t('temp_trend')),
             Card(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
                 child: SizedBox(
                   height: 150,
-                  child: _VitalsChart(history: cow.vitalsHistory),
+                  child: _VitalsChart(history: cow.vitalsHistory, l: l),
                 ),
               ),
             ),
 
             // ── Device info ─────────────────────────────────────────────────
             if (device != null) ...[
-              const SectionHeader(title: 'IoT device'),
+              SectionHeader(title: l.t('iot_device')),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _InfoRow('Device ID', device.id),
-                      _InfoRow('Status', device.status,
-                          valueColor: device.status == 'Online' ? LivTheme.ok : LivTheme.danger),
-                      _InfoRow('Battery', '${device.battery}%',
+                      _InfoRow(l.t('device_id'), device.id),
+                      _InfoRow(l.t('status'), device.status,
+                          valueColor:
+                              device.status == 'Online' ? LivTheme.ok : LivTheme.danger),
+                      _InfoRow(l.t('battery'), '${device.battery}%',
                           valueColor: device.battery < 30 ? LivTheme.danger : null),
-                      _InfoRow('Signal', '${device.signal} dBm'),
-                      _InfoRow('Last packet', '${device.lastPacketSecAgo}s ago'),
+                      _InfoRow(l.t('signal'), '${device.signal} dBm'),
+                      _InfoRow(l.t('last_packet'),
+                          l.t('sec_ago').replaceAll('{n}', '${device.lastPacketSecAgo}')),
                     ],
                   ),
                 ),
@@ -157,7 +164,7 @@ class CowProfileScreen extends StatelessWidget {
             ],
 
             // ── Fertility ───────────────────────────────────────────────────
-            const SectionHeader(title: 'Fertility data'),
+            SectionHeader(title: l.t('fertility_data')),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -172,21 +179,27 @@ class CowProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: LivTheme.gold.withOpacity(0.4)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Text('🌸', style: TextStyle(fontSize: 18)),
-                            SizedBox(width: 8),
-                            Text('In fertile window — breeding recommended',
-                                style: TextStyle(color: LivTheme.gold, fontWeight: FontWeight.w700)),
+                            const Text('🌸', style: TextStyle(fontSize: 18)),
+                            const SizedBox(width: 8),
+                            Text(l.t('fertile_window_banner'),
+                                style: const TextStyle(
+                                    color: LivTheme.gold, fontWeight: FontWeight.w700)),
                           ],
                         ),
                       ),
-                    _InfoRow('Last estrus', '$daysAgo days ago'),
-                    _InfoRow('Predicted in', '${cow.fertility.predictedEstrusInDays} days'),
-                    _InfoRow('Cycle length', '${cow.fertility.cycleLengthDays} days'),
-                    _InfoRow('Conception rate', '${(cow.fertility.conceptionRate * 100).toStringAsFixed(0)}%'),
-                    _InfoRow('Body condition', cow.fertility.bodyConditionScore.toStringAsFixed(1)),
-                    _InfoRow('Inbreeding risk', cow.fertility.inbreedingRisk),
+                    _InfoRow(l.t('last_estrus'),
+                        l.t('days_ago').replaceAll('{n}', '$daysAgo')),
+                    _InfoRow(l.t('predicted_in'),
+                        '${cow.fertility.predictedEstrusInDays} ${l.t('days')}'),
+                    _InfoRow(l.t('cycle_length'),
+                        '${cow.fertility.cycleLengthDays} ${l.t('days')}'),
+                    _InfoRow(l.t('conception_rate'),
+                        '${(cow.fertility.conceptionRate * 100).toStringAsFixed(0)}%'),
+                    _InfoRow(l.t('body_condition'),
+                        cow.fertility.bodyConditionScore.toStringAsFixed(1)),
+                    _InfoRow(l.t('inbreeding_risk'), cow.fertility.inbreedingRisk),
                   ],
                 ),
               ),
@@ -227,12 +240,14 @@ class _InfoRow extends StatelessWidget {
 
 class _VitalsChart extends StatelessWidget {
   final List<double> history;
-  const _VitalsChart({required this.history});
+  final AppLocalizations l;
+  const _VitalsChart({required this.history, required this.l});
 
   @override
   Widget build(BuildContext context) {
     if (history.isEmpty) {
-      return const Center(child: Text('No data', style: TextStyle(color: LivTheme.muted)));
+      return Center(
+          child: Text(l.t('no_data'), style: const TextStyle(color: LivTheme.muted)));
     }
     final spots = history
         .asMap()
@@ -257,8 +272,8 @@ class _VitalsChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 36,
-              getTitlesWidget: (v, _) =>
-                  Text(v.toStringAsFixed(1), style: const TextStyle(fontSize: 9, color: LivTheme.muted)),
+              getTitlesWidget: (v, _) => Text(v.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 9, color: LivTheme.muted)),
             ),
           ),
           bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),

@@ -4,6 +4,7 @@ import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../widgets/widgets.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 
 class BreedingScreen extends StatefulWidget {
   final String? selectedCowId;
@@ -28,24 +29,25 @@ class _BreedingScreenState extends State<BreedingScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final cow = state.cows.where((c) => c.id == _cowId).firstOrNull ?? state.cows.firstOrNull;
     final sire = state.sires.where((s) => s.id == _sireId).firstOrNull ?? state.sires.firstOrNull;
 
     if (cow == null || sire == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Breeding Advisor')),
+        appBar: AppBar(title: Text(l.t('breeding_advisor'))),
         body: const Center(child: Text('No data available.')),
       );
     }
 
     final score = sire.breedingScore(cow);
     final ready = cow.isFertilityReady;
-    final rec = _recommendation(score, ready);
+    final rec = _recommendation(score, ready, l);
 
     return Scaffold(
       backgroundColor: LivTheme.bg,
       appBar: AppBar(
-        title: const Text('Breeding Advisor'),
+        title: Text(l.t('breeding_advisor')),
         backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -58,19 +60,19 @@ class _BreedingScreenState extends State<BreedingScreen> {
               children: [
                 Expanded(
                   child: _SelectorCard(
-                    label: 'Select cow',
+                    label: l.t('select_cow'),
                     value: cow.name,
                     icon: '🐄',
-                    onTap: () => _pickCow(context, state.cows),
+                    onTap: () => _pickCow(context, state.cows, l),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _SelectorCard(
-                    label: 'Select sire',
+                    label: l.t('select_sire'),
                     value: sire.name,
                     icon: '🐂',
-                    onTap: () => _pickSire(context, state.sires),
+                    onTap: () => _pickSire(context, state.sires, l),
                   ),
                 ),
               ],
@@ -81,7 +83,7 @@ class _BreedingScreenState extends State<BreedingScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [LivTheme.primary, LivTheme.accent],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -93,7 +95,8 @@ class _BreedingScreenState extends State<BreedingScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text('Breeding score', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      Text(l.t('breeding_score'),
+                          style: const TextStyle(color: Colors.white70, fontSize: 13)),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -102,7 +105,8 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(score.toStringAsFixed(1),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
                       ),
                     ],
                   ),
@@ -110,31 +114,35 @@ class _BreedingScreenState extends State<BreedingScreen> {
                   Text(rec.emoji, style: const TextStyle(fontSize: 28)),
                   const SizedBox(height: 4),
                   Text(rec.title,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text(rec.body, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  Text(rec.body,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
             ),
 
             // ── Cow details ─────────────────────────────────────────────────
-            const SectionHeader(title: 'Cow profile'),
+            SectionHeader(title: l.t('cow_profile')),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _Row('Health', cow.healthStatus),
-                    _Row('Body condition score', cow.fertility.bodyConditionScore.toStringAsFixed(1)),
-                    _Row('Conception rate', '${(cow.fertility.conceptionRate * 100).toStringAsFixed(0)}%'),
-                    _Row('Inbreeding risk', cow.fertility.inbreedingRisk),
-                    _Row('Fertile window', ready ? '✅ Yes' : '⏳ Not yet'),
+                    _Row(l.t('health'), cow.healthStatus),
+                    _Row(l.t('body_condition_score'),
+                        cow.fertility.bodyConditionScore.toStringAsFixed(1)),
+                    _Row(l.t('conception_rate'),
+                        '${(cow.fertility.conceptionRate * 100).toStringAsFixed(0)}%'),
+                    _Row(l.t('inbreeding_risk'), cow.fertility.inbreedingRisk),
+                    _Row(l.t('fertile_window'), ready ? l.t('yes') : l.t('not_yet')),
                   ],
                 ),
               ),
             ),
 
             // ── Sire traits ─────────────────────────────────────────────────
-            const SectionHeader(title: 'Sire traits'),
+            SectionHeader(title: l.t('sire_traits')),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -142,17 +150,21 @@ class _BreedingScreenState extends State<BreedingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(sire.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: LivTheme.primary)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: LivTheme.primary)),
                     Text(sire.semenBatch,
                         style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
                     const SizedBox(height: 12),
-                    TraitBar(label: 'Fertility', value: sire.traits.fertility),
-                    TraitBar(label: 'Disease Resistance', value: sire.traits.diseaseResistance),
-                    TraitBar(label: 'Temperament', value: sire.traits.temperament),
-                    TraitBar(label: 'Milk Yield', value: sire.traits.milkYield),
-                    TraitBar(label: 'Calving Ease', value: sire.traits.calvingEase),
+                    TraitBar(label: l.t('fertility'), value: sire.traits.fertility),
+                    TraitBar(label: l.t('disease_resistance'), value: sire.traits.diseaseResistance),
+                    TraitBar(label: l.t('temperament'), value: sire.traits.temperament),
+                    TraitBar(label: l.t('milk_yield'), value: sire.traits.milkYield),
+                    TraitBar(label: l.t('calving_ease'), value: sire.traits.calvingEase),
                     const SizedBox(height: 10),
-                    Text(sire.notes, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+                    Text(sire.notes,
+                        style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
                   ],
                 ),
               ),
@@ -160,16 +172,26 @@ class _BreedingScreenState extends State<BreedingScreen> {
 
             // ── Protocol ────────────────────────────────────────────────────
             if (ready) ...[
-              const SectionHeader(title: 'Recommended protocol'),
+              SectionHeader(title: l.t('rec_protocol')),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _ProtocolStep('1', 'Confirm estrus', 'Standing heat observed, elevated activity, restlessness.'),
-                      _ProtocolStep('2', 'Check device', 'Verify ${cow.deviceId} is online and sensors are reading correctly.'),
-                      _ProtocolStep('3', 'Use batch', '${sire.semenBatch} from ${sire.name}.'),
-                      _ProtocolStep('4', 'Record', 'Log insemination in herd management software.'),
+                      _ProtocolStep('1', l.t('step_confirm'), l.t('step_confirm_body')),
+                      _ProtocolStep(
+                        '2',
+                        l.t('step_check_device'),
+                        l.t('step_check_device_body').replaceAll('{id}', cow.deviceId),
+                      ),
+                      _ProtocolStep(
+                        '3',
+                        l.t('step_use_batch'),
+                        l.t('step_use_batch_body')
+                            .replaceAll('{batch}', sire.semenBatch)
+                            .replaceAll('{sire}', sire.name),
+                      ),
+                      _ProtocolStep('4', l.t('step_record'), l.t('step_record_body')),
                     ],
                   ),
                 ),
@@ -183,34 +205,34 @@ class _BreedingScreenState extends State<BreedingScreen> {
     );
   }
 
-  void _pickCow(BuildContext ctx, List<Cow> cows) {
+  void _pickCow(BuildContext ctx, List<Cow> cows, AppLocalizations l) {
     showModalBottomSheet(
       context: ctx,
       builder: (_) => _PickerSheet(
-        title: 'Select cow',
+        title: l.t('select_cow'),
         items: cows.map((c) => (c.id, c.name, c.healthStatus)).toList(),
         onSelect: (id) => setState(() => _cowId = id),
       ),
     );
   }
 
-  void _pickSire(BuildContext ctx, List<Sire> sires) {
+  void _pickSire(BuildContext ctx, List<Sire> sires, AppLocalizations l) {
     showModalBottomSheet(
       context: ctx,
       builder: (_) => _PickerSheet(
-        title: 'Select sire',
+        title: l.t('select_sire'),
         items: sires.map((s) => (s.id, s.name, s.semenBatch)).toList(),
         onSelect: (id) => setState(() => _sireId = id),
       ),
     );
   }
 
-  _Rec _recommendation(double score, bool ready) {
-    if (!ready) return const _Rec('⏳', 'Not in fertile window', 'Wait for the next estrus cycle before insemination.');
-    if (score >= 7.5) return const _Rec('✅', 'Strongly Recommended', 'Excellent match — schedule insemination now.');
-    if (score >= 6.0) return const _Rec('👍', 'Recommended', 'Good compatibility. Proceed when cow is confirmed in estrus.');
-    if (score >= 4.5) return const _Rec('⚠️', 'Proceed with Caution', 'Acceptable match. Address health concerns first.');
-    return const _Rec('❌', 'Not Recommended', 'Low score. Consider a different sire or wait until health improves.');
+  _Rec _recommendation(double score, bool ready, AppLocalizations l) {
+    if (!ready) return _Rec(l.t('rec_not_fertile'), l.t('rec_not_fertile_title'), l.t('rec_not_fertile_body'));
+    if (score >= 7.5) return _Rec(l.t('rec_strong'), l.t('rec_strong_title'), l.t('rec_strong_body'));
+    if (score >= 6.0) return _Rec(l.t('rec_good'), l.t('rec_good_title'), l.t('rec_good_body'));
+    if (score >= 4.5) return _Rec(l.t('rec_caution'), l.t('rec_caution_title'), l.t('rec_caution_body'));
+    return _Rec(l.t('rec_no'), l.t('rec_no_title'), l.t('rec_no_body'));
   }
 }
 
@@ -254,10 +276,11 @@ class _ProtocolStep extends StatelessWidget {
           Container(
             width: 24,
             height: 24,
-            decoration: BoxDecoration(color: LivTheme.primary, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: LivTheme.primary, shape: BoxShape.circle),
             child: Center(
                 child: Text(num,
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800))),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -280,7 +303,11 @@ class _SelectorCard extends StatelessWidget {
   final String value;
   final String icon;
   final VoidCallback onTap;
-  const _SelectorCard({required this.label, required this.value, required this.icon, required this.onTap});
+  const _SelectorCard(
+      {required this.label,
+      required this.value,
+      required this.icon,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +326,10 @@ class _SelectorCard extends StatelessWidget {
                 children: [
                   Text(icon, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 6),
-                  Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                  Expanded(
+                      child: Text(value,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14))),
                   const Icon(Icons.keyboard_arrow_down, size: 18, color: LivTheme.muted),
                 ],
               ),
@@ -315,7 +345,8 @@ class _PickerSheet extends StatelessWidget {
   final String title;
   final List<(String, String, String)> items;
   final void Function(String id) onSelect;
-  const _PickerSheet({required this.title, required this.items, required this.onSelect});
+  const _PickerSheet(
+      {required this.title, required this.items, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +356,8 @@ class _PickerSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            child:
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           ),
           ...items.map((item) => ListTile(
                 title: Text(item.$2),

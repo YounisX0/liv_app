@@ -5,6 +5,7 @@ import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../widgets/widgets.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 
 class GatewayScreen extends StatelessWidget {
   const GatewayScreen({super.key});
@@ -12,6 +13,7 @@ class GatewayScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final pkt = state.latestPacket;
 
     return Theme(
@@ -33,8 +35,8 @@ class GatewayScreen extends StatelessWidget {
                         children: [
                           _LiveDot(active: state.connected),
                           const SizedBox(width: 8),
-                          const Text('LIV Gateway Monitor',
-                              style: TextStyle(
+                          Text(l.t('gateway_monitor'),
+                              style: const TextStyle(
                                   fontSize: 13,
                                   color: LivTheme.darkAccent,
                                   fontWeight: FontWeight.w600,
@@ -42,19 +44,21 @@ class GatewayScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Text('Real-time sensor telemetry',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                      Text(l.t('realtime_telemetry'),
+                          style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white)),
                       const SizedBox(height: 16),
 
                       // Status strip
                       Row(
                         children: [
-                          _StatusPill(label: 'UDP', value: state.udpStatus),
+                          _StatusPill(label: l.t('udp'), value: state.udpStatus),
                           const SizedBox(width: 8),
-                          _StatusPill(label: 'MQTT', value: state.mqttStatus),
+                          _StatusPill(label: l.t('mqtt'), value: state.mqttStatus),
                           const SizedBox(width: 8),
-                          _StatusPill(label: 'Last', value: state.lastPacketTime),
+                          _StatusPill(label: l.t('last'), value: state.lastPacketTime),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -62,14 +66,16 @@ class GatewayScreen extends StatelessWidget {
                       // Counter row
                       Row(
                         children: [
-                          _CountBox(label: 'Packets', value: '${state.totalReceived}'),
+                          _CountBox(label: l.t('packets'), value: '${state.totalReceived}'),
                           const SizedBox(width: 8),
-                          _CountBox(label: 'Published', value: '${state.totalPublished}'),
+                          _CountBox(label: l.t('published'), value: '${state.totalPublished}'),
                           const SizedBox(width: 8),
-                          _CountBox(label: 'Bad JSON', value: '${state.badJson}',
+                          _CountBox(
+                              label: l.t('bad_json'),
+                              value: '${state.badJson}',
                               danger: state.badJson > 0),
                           const SizedBox(width: 8),
-                          _CountBox(label: 'Gateway', value: state.gatewayId),
+                          _CountBox(label: l.t('gateway'), value: state.gatewayId),
                         ],
                       ),
                     ],
@@ -87,61 +93,61 @@ class GatewayScreen extends StatelessWidget {
                   childAspectRatio: 1.55,
                   children: [
                     MetricTile(
-                      label: 'Temperature',
+                      label: l.t('temp_celsius'),
                       value: pkt?.tempC != null ? pkt!.tempC!.toStringAsFixed(1) : '--',
                       unit: '°C',
-                      sub: 'Body / object',
+                      sub: l.t('body_object'),
                       badgeColor: _tempColor(pkt?.tempC),
                     ),
                     MetricTile(
-                      label: 'Heart Rate I2C',
+                      label: l.t('hr_i2c'),
                       value: pkt?.hrI2c != null ? pkt!.hrI2c!.toStringAsFixed(0) : '--',
                       unit: 'bpm',
-                      sub: 'Ear-clip / I2C',
+                      sub: l.t('ear_clip'),
                       badgeColor: _hrColor(pkt?.hrI2c),
                     ),
                     MetricTile(
-                      label: 'SpO₂ I2C',
+                      label: l.t('spo2_i2c'),
                       value: pkt?.spo2I2c != null ? pkt!.spo2I2c!.toStringAsFixed(0) : '--',
                       unit: '%',
-                      sub: 'Oxygen saturation',
+                      sub: l.t('oxygen_sat'),
                       badgeColor: _spo2Color(pkt?.spo2I2c),
                     ),
                     MetricTile(
-                      label: 'Heart Rate UART',
+                      label: l.t('hr_uart'),
                       value: pkt?.hrUart != null ? pkt!.hrUart!.toStringAsFixed(0) : '--',
                       unit: 'bpm',
-                      sub: 'Backup UART',
+                      sub: l.t('backup_uart'),
                     ),
                     MetricTile(
-                      label: 'SpO₂ UART',
+                      label: l.t('spo2_uart'),
                       value: pkt?.spo2Uart != null ? pkt!.spo2Uart!.toStringAsFixed(0) : '--',
                       unit: '%',
-                      sub: 'UART channel',
+                      sub: l.t('uart_channel'),
                     ),
                     MetricTile(
-                      label: 'Accel Magnitude',
+                      label: l.t('accel_mag'),
                       value: pkt != null ? pkt.accelMag.toStringAsFixed(2) : '--',
                       unit: 'm/s²',
-                      sub: 'From X/Y/Z',
+                      sub: l.t('from_xyz'),
                       badgeColor: LivTheme.darkAccent,
                     ),
                     MetricTile(
-                      label: 'Gyro Magnitude',
+                      label: l.t('gyro_mag'),
                       value: pkt != null ? pkt.gyroMag.toStringAsFixed(2) : '--',
                       unit: 'rad/s',
-                      sub: 'From X/Y/Z',
+                      sub: l.t('from_xyz'),
                       badgeColor: LivTheme.darkAccent,
                     ),
                     MetricTile(
-                      label: 'GPS',
+                      label: l.t('gps'),
                       value: pkt?.lat != null
                           ? '${pkt!.lat!.toStringAsFixed(4)}'
                           : '--',
                       unit: pkt?.lat != null ? '°N' : '',
                       sub: pkt?.lng != null
                           ? 'Lng: ${pkt!.lng!.toStringAsFixed(4)}'
-                          : 'No GPS lock',
+                          : l.t('no_gps'),
                     ),
                   ],
                 ),
@@ -152,8 +158,8 @@ class GatewayScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _DarkPanel(
-                    title: 'Vitals trend',
-                    subtitle: 'Temp · HR · SpO₂',
+                    title: l.t('vitals_trend'),
+                    subtitle: l.t('vitals_legend'),
                     child: SizedBox(
                       height: 160,
                       child: _MultiLineChart(
@@ -162,6 +168,7 @@ class GatewayScreen extends StatelessWidget {
                           'HR bpm': (state.hrHistory, const Color(0xFF7CC8FF)),
                           'SpO₂ %': (state.spo2History, const Color(0xFFFFA552)),
                         },
+                        waitingText: l.t('waiting'),
                       ),
                     ),
                   ),
@@ -173,8 +180,8 @@ class GatewayScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _DarkPanel(
-                    title: 'Motion trend',
-                    subtitle: 'Accel + Gyro magnitude',
+                    title: l.t('motion_trend'),
+                    subtitle: l.t('motion_legend'),
                     child: SizedBox(
                       height: 140,
                       child: _MultiLineChart(
@@ -182,6 +189,7 @@ class GatewayScreen extends StatelessWidget {
                           'Accel m/s²': (state.accelHistory, const Color(0xFFA78BFA)),
                           'Gyro rad/s': (state.gyroHistory, const Color(0xFFF87171)),
                         },
+                        waitingText: l.t('waiting'),
                       ),
                     ),
                   ),
@@ -193,8 +201,8 @@ class GatewayScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: _DarkPanel(
-                    title: 'Per-axis motion',
-                    subtitle: 'Direct from latest packet',
+                    title: l.t('per_axis'),
+                    subtitle: l.t('direct_latest'),
                     child: GridView.count(
                       crossAxisCount: 3,
                       shrinkWrap: true,
@@ -215,18 +223,19 @@ class GatewayScreen extends StatelessWidget {
                 ),
               ),
 
-              // ── Packet feed ────────────────────────────────────────────────
+              // ── Live feed ──────────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   child: _DarkPanel(
-                    title: 'Packet feed',
-                    subtitle: 'Newest first',
+                    title: l.t('live_feed'),
+                    subtitle: l.t('last_packets').replaceAll('{n}', '${state.packetFeed.length}'),
                     child: state.packetFeed.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('Waiting for packets…',
-                                style: TextStyle(color: LivTheme.darkMuted, fontSize: 13)),
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(l.t('waiting'),
+                                style: const TextStyle(
+                                    color: LivTheme.darkMuted, fontSize: 12)),
                           )
                         : Column(
                             children: state.packetFeed
@@ -237,32 +246,6 @@ class GatewayScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // ── Raw JSON ───────────────────────────────────────────────────
-              if (pkt != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    child: _DarkPanel(
-                      title: 'Latest raw payload',
-                      subtitle: 'JSON from device',
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0A0F1A),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          _fmtPacket(pkt),
-                          style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                              color: Color(0xFF31D0AA)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -274,83 +257,37 @@ class GatewayScreen extends StatelessWidget {
     if (v == null) return null;
     if (v > 39.5) return LivTheme.danger;
     if (v > 39.0) return LivTheme.warn;
-    return LivTheme.ok;
+    return LivTheme.darkAccent;
   }
 
   Color? _hrColor(double? v) {
     if (v == null) return null;
     if (v > 110) return LivTheme.danger;
-    if (v > 95) return LivTheme.warn;
-    return LivTheme.ok;
+    if (v > 100) return LivTheme.warn;
+    return LivTheme.darkAccent;
   }
 
   Color? _spo2Color(double? v) {
     if (v == null) return null;
     if (v < 90) return LivTheme.danger;
     if (v < 94) return LivTheme.warn;
-    return LivTheme.ok;
-  }
-
-  String _fmtPacket(TelemetryPacket p) {
-    final lines = <String>[];
-    if (p.tempC != null) lines.add('  "temp_c": ${p.tempC!.toStringAsFixed(2)}');
-    if (p.hrI2c != null) lines.add('  "hr_i2c": ${p.hrI2c!.toStringAsFixed(0)}');
-    if (p.spo2I2c != null) lines.add('  "spo2_i2c": ${p.spo2I2c!.toStringAsFixed(0)}');
-    if (p.hrUart != null) lines.add('  "hr_uart": ${p.hrUart!.toStringAsFixed(0)}');
-    if (p.spo2Uart != null) lines.add('  "spo2_uart": ${p.spo2Uart!.toStringAsFixed(0)}');
-    if (p.accelX != null) lines.add('  "accel_x": ${p.accelX!.toStringAsFixed(3)}');
-    if (p.accelY != null) lines.add('  "accel_y": ${p.accelY!.toStringAsFixed(3)}');
-    if (p.accelZ != null) lines.add('  "accel_z": ${p.accelZ!.toStringAsFixed(3)}');
-    if (p.gyroX != null) lines.add('  "gyro_x": ${p.gyroX!.toStringAsFixed(3)}');
-    if (p.gyroY != null) lines.add('  "gyro_y": ${p.gyroY!.toStringAsFixed(3)}');
-    if (p.gyroZ != null) lines.add('  "gyro_z": ${p.gyroZ!.toStringAsFixed(3)}');
-    if (p.lat != null) lines.add('  "lat": ${p.lat!.toStringAsFixed(6)}');
-    if (p.lng != null) lines.add('  "lng": ${p.lng!.toStringAsFixed(6)}');
-    if (p.cowId.isNotEmpty) lines.add('  "cow_id": "${p.cowId}"');
-    if (p.deviceId.isNotEmpty) lines.add('  "device_id": "${p.deviceId}"');
-    return '{\n${lines.join(',\n')}\n}';
+    return LivTheme.darkAccent;
   }
 }
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
-
-class _LiveDot extends StatefulWidget {
+// ── Small pulsing live dot ────────────────────────────────────────────────────
+class _LiveDot extends StatelessWidget {
   final bool active;
   const _LiveDot({required this.active});
 
   @override
-  State<_LiveDot> createState() => _LiveDotState();
-}
-
-class _LiveDotState extends State<_LiveDot> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))
-      ..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.active
-              ? Color.lerp(LivTheme.darkAccent, LivTheme.ok, _ctrl.value)
-              : LivTheme.danger,
-        ),
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? LivTheme.darkAccent : LivTheme.darkMuted,
       ),
     );
   }
@@ -365,18 +302,20 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: const Color(0xFF111827),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFF1F2937)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
+            Text(label,
+                style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
             Text(value,
-                style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700),
                 overflow: TextOverflow.ellipsis),
           ],
         ),
@@ -389,7 +328,8 @@ class _CountBox extends StatelessWidget {
   final String label;
   final String value;
   final bool danger;
-  const _CountBox({required this.label, required this.value, this.danger = false});
+  const _CountBox(
+      {required this.label, required this.value, this.danger = false});
 
   @override
   Widget build(BuildContext context) {
@@ -400,7 +340,9 @@ class _CountBox extends StatelessWidget {
           color: const Color(0xFF111827),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: danger ? LivTheme.danger.withOpacity(0.5) : const Color(0xFF1F2937)),
+              color: danger
+                  ? LivTheme.danger.withOpacity(0.5)
+                  : const Color(0xFF1F2937)),
         ),
         child: Column(children: [
           Text(value,
@@ -408,7 +350,8 @@ class _CountBox extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: danger ? LivTheme.danger : Colors.white)),
-          Text(label, style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
+          Text(label,
+              style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
         ]),
       ),
     );
@@ -419,7 +362,8 @@ class _DarkPanel extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget child;
-  const _DarkPanel({required this.title, required this.subtitle, required this.child});
+  const _DarkPanel(
+      {required this.title, required this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -437,12 +381,17 @@ class _DarkPanel extends StatelessWidget {
             child: Row(children: [
               Text(title,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
               const Spacer(),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: LivTheme.darkMuted)),
+              Text(subtitle,
+                  style: const TextStyle(
+                      fontSize: 11, color: LivTheme.darkMuted)),
             ]),
           ),
-          Padding(padding: const EdgeInsets.fromLTRB(12, 0, 12, 14), child: child),
+          Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 14), child: child),
         ],
       ),
     );
@@ -465,7 +414,8 @@ class _AxisBox extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
+          Text(label,
+              style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
           const SizedBox(height: 2),
           Text(
             value != null ? value!.toStringAsFixed(2) : '--',
@@ -494,10 +444,15 @@ class _PacketRow extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: const BoxDecoration(color: LivTheme.darkAccent, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+                color: LivTheme.darkAccent, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
-          Text(time, style: const TextStyle(fontSize: 11, color: LivTheme.darkMuted, fontFamily: 'monospace')),
+          Text(time,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: LivTheme.darkMuted,
+                  fontFamily: 'monospace')),
           const SizedBox(width: 10),
           if (packet.tempC != null)
             Text('${packet.tempC!.toStringAsFixed(1)}°C',
@@ -526,15 +481,16 @@ class _PacketRow extends StatelessWidget {
 // ── Multi-line chart ──────────────────────────────────────────────────────────
 class _MultiLineChart extends StatelessWidget {
   final Map<String, (List<double>, Color)> series;
-  const _MultiLineChart({required this.series});
+  final String waitingText;
+  const _MultiLineChart({required this.series, this.waitingText = 'Waiting for data…'});
 
   @override
   Widget build(BuildContext context) {
     final allEmpty = series.values.every((e) => e.$1.isEmpty);
     if (allEmpty) {
-      return const Center(
-        child: Text('Waiting for data…',
-            style: TextStyle(color: LivTheme.darkMuted, fontSize: 12)),
+      return Center(
+        child: Text(waitingText,
+            style: const TextStyle(color: LivTheme.darkMuted, fontSize: 12)),
       );
     }
 
@@ -552,7 +508,8 @@ class _MultiLineChart extends StatelessWidget {
         color: color,
         barWidth: 2,
         dotData: const FlDotData(show: false),
-        belowBarData: BarAreaData(show: true, color: color.withOpacity(0.08)),
+        belowBarData:
+            BarAreaData(show: true, color: color.withOpacity(0.08)),
       );
     }).toList();
 
@@ -570,12 +527,16 @@ class _MultiLineChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 36,
               getTitlesWidget: (v, _) => Text(v.toStringAsFixed(0),
-                  style: const TextStyle(fontSize: 9, color: LivTheme.darkMuted)),
+                  style: const TextStyle(
+                      fontSize: 9, color: LivTheme.darkMuted)),
             ),
           ),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         lineBarsData: bars,
       ),

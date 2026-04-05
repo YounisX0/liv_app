@@ -4,6 +4,7 @@ import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../widgets/widgets.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 import 'cow_profile_screen.dart';
 
 class OverviewScreen extends StatelessWidget {
@@ -12,8 +13,8 @@ class OverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
 
-    // Health counts
     final healthCounts = <String, int>{};
     for (final c in state.cows) {
       healthCounts[c.healthStatus] = (healthCounts[c.healthStatus] ?? 0) + 1;
@@ -33,7 +34,7 @@ class OverviewScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                if (state.useDemoData) const DemoBanner(),
+                if (state.useDemoData) DemoBanner(message: l.t('demo_banner')),
 
                 // ── KPI row ───────────────────────────────────────────────
                 GridView.count(
@@ -42,66 +43,67 @@ class OverviewScreen extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 1.6,
+                  childAspectRatio: 1.05,
                   children: [
                     KpiCard(
-                      label: 'Total cows',
+                      label: l.t('total_cows'),
                       value: '${state.cows.length}',
-                      hint: 'In herd',
+                      hint: l.t('in_herd'),
                     ),
                     KpiCard(
-                      label: 'Healthy',
+                      label: l.t('healthy'),
                       value: '$healthyCnt',
                       valueColor: LivTheme.ok,
-                      hint: '${healthyCnt == state.cows.length ? "All clear" : "Check others"}',
+                      hint: healthyCnt == state.cows.length ? l.t('all_clear') : l.t('check_others'),
                     ),
                     KpiCard(
-                      label: 'Active alerts',
+                      label: l.t('active_alerts'),
                       value: '$alertCnt',
                       valueColor: alertCnt > 0 ? LivTheme.danger : LivTheme.ok,
-                      hint: alertCnt > 0 ? 'Needs attention' : 'All clear',
+                      hint: alertCnt > 0 ? l.t('needs_attention') : l.t('all_clear'),
                     ),
                     KpiCard(
-                      label: 'Devices online',
+                      label: l.t('devices_online'),
                       value: '$onlineCnt',
-                      hint: 'of ${state.devices.length} total',
+                      hint: l.t('of_total').replaceAll('{n}', '${state.devices.length}'),
                     ),
                   ],
                 ),
 
                 // ── Health breakdown ──────────────────────────────────────
-                const SectionHeader(title: 'Herd health breakdown'),
+                SectionHeader(title: l.t('herd_health_breakdown')),
                 ...healthCounts.entries.map((e) {
                   final badge = HealthBadge(e.key);
+                  final cowWord = e.value == 1 ? l.t('cow') : l.t('cows');
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('${e.value} cow${e.value == 1 ? '' : 's'}'),
+                      subtitle: Text('${e.value} $cowWord'),
                       trailing: badge,
                     ),
                   );
                 }),
 
                 // ── Recent alerts ─────────────────────────────────────────
-                const SectionHeader(title: 'Recent alerts', subtitle: 'Latest 6'),
+                SectionHeader(title: l.t('recent_alerts'), subtitle: l.t('latest_6')),
                 if (topAlerts.isEmpty)
-                  const Card(
+                  Card(
                     child: Padding(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, color: LivTheme.ok),
-                          SizedBox(width: 10),
-                          Text('No alerts — herd is healthy!'),
+                          const Icon(Icons.check_circle, color: LivTheme.ok),
+                          const SizedBox(width: 10),
+                          Text(l.t('no_alerts')),
                         ],
                       ),
                     ),
                   ),
-                ...topAlerts.map((a) => _AlertCard(alert: a, cows: state.cows)),
+                ...topAlerts.map((a) => _AlertCard(alert: a, cows: state.cows, l: l)),
 
                 // ── Quick cow list ────────────────────────────────────────
-                const SectionHeader(title: 'Herd overview'),
+                SectionHeader(title: l.t('herd_overview')),
                 ...state.cows.map((c) => _CowRow(cow: c)),
 
                 const SizedBox(height: 32),
@@ -117,12 +119,13 @@ class OverviewScreen extends StatelessWidget {
 class _AlertCard extends StatelessWidget {
   final FarmAlert alert;
   final List<Cow> cows;
-  const _AlertCard({required this.alert, required this.cows});
+  final AppLocalizations l;
+  const _AlertCard({required this.alert, required this.cows, required this.l});
 
   @override
   Widget build(BuildContext context) {
     final cow = cows.where((c) => c.id == alert.cowId).firstOrNull;
-    final time = _fmtTime(alert.createdAt);
+    final time = _fmtTime(alert.createdAt, l);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -146,7 +149,8 @@ class _AlertCard extends StatelessWidget {
                   ),
                   if (cow != null)
                     Text(cow.name,
-                        style: const TextStyle(fontSize: 12, color: LivTheme.accent, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontSize: 12, color: LivTheme.accent, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(alert.details, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
                 ],
@@ -158,12 +162,12 @@ class _AlertCard extends StatelessWidget {
     );
   }
 
-  String _fmtTime(String iso) {
+  String _fmtTime(String iso, AppLocalizations l) {
     try {
       final t = DateTime.parse(iso);
       final diff = DateTime.now().difference(t);
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      return '${diff.inHours}h ago';
+      if (diff.inMinutes < 60) return l.t('min_ago').replaceAll('{n}', '${diff.inMinutes}');
+      return l.t('hr_ago').replaceAll('{n}', '${diff.inHours}');
     } catch (_) {
       return '';
     }
@@ -188,7 +192,6 @@ class _CowRow extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Cow avatar
               Container(
                 width: 44,
                 height: 44,

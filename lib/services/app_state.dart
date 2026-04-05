@@ -2,18 +2,45 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
+import '../l10n/app_localizations.dart';
 
 /// AppState drives both the Cloud dashboard (cows/alerts/sires) and
 /// the Gateway telemetry screen. It uses polling against the Node.js
-/// REST API (/api/cloud-state, /api/status) because socket_io_client
-/// can also be added if preferred.
+/// REST API (/api/cloud-state, /api/status).
 class AppState extends ChangeNotifier {
   // ── Server connection ─────────────────────────────────────────────────────
   String _serverUrl = 'http://localhost:3000';
   String get serverUrl => _serverUrl;
   bool _connected = false;
   bool get connected => _connected;
+
+  // ── Locale ────────────────────────────────────────────────────────────────
+  AppLocale _locale = AppLocale.en;
+  AppLocale get locale => _locale;
+
+  void setLocale(AppLocale loc) {
+    _locale = loc;
+    _saveLocale(loc);
+    notifyListeners();
+  }
+
+  Future<void> _saveLocale(AppLocale loc) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('locale', loc.code);
+  }
+
+  Future<void> _loadLocale() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final code = prefs.getString('locale');
+      if (code == 'ar') {
+        _locale = AppLocale.ar;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
 
   // ── Cloud dashboard state ─────────────────────────────────────────────────
   List<Cow> cows = [];
@@ -44,7 +71,8 @@ class AppState extends ChangeNotifier {
   bool get useDemoData => _useDemoData;
 
   AppState() {
-    _loadDemo(); // always start with demo
+    _loadDemo();
+    _loadLocale();
     _startPolling();
   }
 
@@ -111,9 +139,6 @@ class AppState extends ChangeNotifier {
         totalPublished = data['totalPublished'] ?? totalPublished;
         badJson = data['badJson'] ?? badJson;
         gatewayId = data['gatewayId'] ?? gatewayId;
-
-        // Simulate a fake packet update from the status endpoint if the server
-        // sends the latest payload inside /api/status
         if (data['latest'] != null) {
           _pushPacket(TelemetryPacket.fromJson(data['latest']));
         }
@@ -147,7 +172,6 @@ class AppState extends ChangeNotifier {
     return '${diff.inMinutes}m ago';
   }
 
-  // ── Reset demo ────────────────────────────────────────────────────────────
   Future<void> resetDemo() async {
     try {
       await http.post(Uri.parse('$_serverUrl/api/demo/reset'));
