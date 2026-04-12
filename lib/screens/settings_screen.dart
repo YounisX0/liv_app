@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               autocorrect: false,
               decoration: InputDecoration(
                 labelText: l.t('server_url'),
-                hintText: 'http://192.168.1.100:3000',
+                hintText: 'https://your-api-id.execute-api.eu-central-1.amazonaws.com',
                 prefixIcon: const Icon(Icons.lan_outlined),
                 filled: true,
                 fillColor: Colors.white,
@@ -120,8 +120,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Section(title: l.t('connection_status'), children: [
             _StatusRow(
               label: l.t('server'),
-              value: state.connected ? l.t('connected') : l.t('disconnected'),
-              color: state.connected ? LivTheme.ok : LivTheme.danger,
+              value: state.hasServerUrl ? l.t('configured') : l.t('not_configured'),
+              color: state.hasServerUrl ? LivTheme.ok : LivTheme.danger,
             ),
             _StatusRow(
               label: l.t('data_mode'),
@@ -167,19 +167,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _Section(title: l.t('about'), children: [
             _InfoRow(l.t('app_label'), 'LIV Smart Farm Dashboard'),
             _InfoRow(l.t('version'), '1.0.0'),
-            _InfoRow(l.t('backend'), 'Node.js · Express · Socket.IO · AWS IoT'),
+            _InfoRow(l.t('backend'), 'AWS API Gateway · Lambda · DynamoDB'),
             _InfoRow(l.t('hardware'), 'ESP32 → Farm PC → AWS'),
             const SizedBox(height: 8),
             const Text(
-              'Routes:\n'
-              '  GET  /api/status        → Gateway + MQTT status\n'
-              '  GET  /api/cloud-state   → Full herd state\n'
-              '  POST /api/demo/reset    → Reset demo data',
+              'Current step:\n'
+              '  • Save AWS API base URL\n'
+              '  • Keep app in local demo mode\n'
+              '\n'
+              'Next step:\n'
+              '  • Connect auth and cows endpoints',
               style: TextStyle(
-                  fontSize: 11,
-                  color: LivTheme.muted,
-                  fontFamily: 'monospace',
-                  height: 1.6),
+                fontSize: 11,
+                color: LivTheme.muted,
+                fontFamily: 'monospace',
+                height: 1.6,
+              ),
             ),
           ]),
 
@@ -196,6 +199,7 @@ class _LangOption extends StatelessWidget {
   final String flag;
   final bool selected;
   final VoidCallback onTap;
+
   const _LangOption({
     required this.label,
     required this.flag,
@@ -252,6 +256,7 @@ class _LangOption extends StatelessWidget {
 class _Section extends StatelessWidget {
   final String title;
   final List<Widget> children;
+
   const _Section({required this.title, required this.children});
 
   @override
@@ -259,12 +264,15 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: LivTheme.muted,
-                letterSpacing: 0.8)),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: LivTheme.muted,
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 10),
         Card(
           child: Padding(
@@ -284,7 +292,12 @@ class _StatusRow extends StatelessWidget {
   final String label;
   final String value;
   final Color? color;
-  const _StatusRow({required this.label, required this.value, this.color});
+
+  const _StatusRow({
+    required this.label,
+    required this.value,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -294,11 +307,14 @@ class _StatusRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 13, color: LivTheme.muted)),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color ?? LivTheme.text)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color ?? LivTheme.text,
+            ),
+          ),
         ],
       ),
     );
@@ -308,6 +324,7 @@ class _StatusRow extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+
   const _InfoRow(this.label, this.value);
 
   @override
@@ -322,7 +339,10 @@ class _InfoRow extends StatelessWidget {
             child: Text(label, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

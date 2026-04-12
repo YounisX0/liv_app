@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+
+import 'l10n/app_localizations.dart';
+import 'screens/breeding_screen.dart';
+import 'screens/cows_screen.dart';
+import 'screens/gateway_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/overview_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/app_state.dart';
 import 'theme/liv_theme.dart';
-import 'l10n/app_localizations.dart';
-import 'screens/overview_screen.dart';
-import 'screens/cows_screen.dart';
-import 'screens/breeding_screen.dart';
-import 'screens/gateway_screen.dart';
-import 'screens/settings_screen.dart';
 
 void main() {
   runApp(
@@ -31,7 +33,6 @@ class LivApp extends StatelessWidget {
       title: 'LIV Dashboard',
       debugShowCheckedModeBanner: false,
       theme: LivTheme.light,
-      // ── Locale & RTL ──────────────────────────────────────────────────────
       locale: Locale(locale.code),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: [
@@ -41,13 +42,87 @@ class LivApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       builder: (context, child) {
-        // Wrap with Directionality so all widgets respect RTL/LTR
         return Directionality(
           textDirection: locale.isRtl ? TextDirection.rtl : TextDirection.ltr,
           child: child!,
         );
       },
-      home: const AppShell(),
+      home: const LaunchGate(),
+    );
+  }
+}
+
+class LaunchGate extends StatelessWidget {
+  const LaunchGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+
+    if (state.isInitializing) {
+      return const SplashGateScreen();
+    }
+
+    if (state.isAuthenticated) {
+      return const AppShell();
+    }
+
+    return const LoginScreen();
+  }
+}
+
+class SplashGateScreen extends StatelessWidget {
+  const SplashGateScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: LivTheme.bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [LivTheme.primary, LivTheme.accent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Center(
+                child: Text(
+                  'L',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 34,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'LIV Smart Farm',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: LivTheme.primary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            const Text(
+              'Restoring session...',
+              style: TextStyle(color: LivTheme.muted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -69,11 +144,31 @@ class _AppShellState extends State<AppShell> {
     final l = AppLocalizations(state.locale);
 
     final tabs = [
-      _TabDef(label: l.t('nav_overview'), icon: Icons.dashboard_outlined,  activeIcon: Icons.dashboard),
-      _TabDef(label: l.t('nav_herd'),     icon: Icons.pets_outlined,        activeIcon: Icons.pets),
-      _TabDef(label: l.t('nav_breeding'), icon: Icons.favorite_outline,     activeIcon: Icons.favorite),
-      _TabDef(label: l.t('nav_gateway'),  icon: Icons.router_outlined,      activeIcon: Icons.router),
-      _TabDef(label: l.t('nav_settings'), icon: Icons.settings_outlined,    activeIcon: Icons.settings),
+      _TabDef(
+        label: l.t('nav_overview'),
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+      ),
+      _TabDef(
+        label: l.t('nav_herd'),
+        icon: Icons.pets_outlined,
+        activeIcon: Icons.pets,
+      ),
+      _TabDef(
+        label: l.t('nav_breeding'),
+        icon: Icons.favorite_outline,
+        activeIcon: Icons.favorite,
+      ),
+      _TabDef(
+        label: l.t('nav_gateway'),
+        icon: Icons.router_outlined,
+        activeIcon: Icons.router,
+      ),
+      _TabDef(
+        label: l.t('nav_settings'),
+        icon: Icons.settings_outlined,
+        activeIcon: Icons.settings,
+      ),
     ];
 
     return Scaffold(
@@ -95,40 +190,49 @@ class _AppShellState extends State<AppShell> {
                 borderRadius: BorderRadius.circular(9),
               ),
               child: const Center(
-                child: Text('L',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18)),
+                child: Text(
+                  'L',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('LIV',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        color: LivTheme.primary,
-                        height: 1.1)),
-                Text(tabs[_tab].label,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: LivTheme.muted,
-                        fontWeight: FontWeight.w400,
-                        height: 1)),
+                const Text(
+                  'LIV',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: LivTheme.primary,
+                    height: 1.1,
+                  ),
+                ),
+                Text(
+                  tabs[_tab].label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: LivTheme.muted,
+                    fontWeight: FontWeight.w400,
+                    height: 1,
+                  ),
+                ),
               ],
             ),
           ],
         ),
         actions: [
-          // ── Language toggle button ─────────────────────────────────────
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: TextButton(
               onPressed: () {
-                final next = state.locale == AppLocale.en ? AppLocale.ar : AppLocale.en;
+                final next =
+                    state.locale == AppLocale.en ? AppLocale.ar : AppLocale.en;
                 state.setLocale(next);
               },
               style: TextButton.styleFrom(
@@ -161,9 +265,8 @@ class _AppShellState extends State<AppShell> {
               ),
             ),
           ),
-          // ── Connection indicator ───────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.only(right: 14),
+            padding: const EdgeInsets.only(right: 8),
             child: Row(
               children: [
                 Container(
@@ -186,6 +289,19 @@ class _AppShellState extends State<AppShell> {
               ],
             ),
           ),
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: state.isBusy ? null : () => state.refreshLiveData(),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: () async {
+              await context.read<AppState>().logout();
+            },
+            icon: const Icon(Icons.logout_rounded),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(
@@ -223,5 +339,10 @@ class _TabDef {
   final String label;
   final IconData icon;
   final IconData activeIcon;
-  const _TabDef({required this.label, required this.icon, required this.activeIcon});
+
+  const _TabDef({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+  });
 }

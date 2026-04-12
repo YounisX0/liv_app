@@ -1,7 +1,3 @@
-// ─── app_localizations.dart ────────────────────────────────────────────────────
-// Simple key-value localization for English ↔ Arabic.
-// Add more locales by adding an entry to _translations.
-
 import 'package:flutter/material.dart';
 
 /// Supported locales
@@ -18,8 +14,8 @@ class AppLocalizations {
   const AppLocalizations(this.locale);
 
   static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)
-        ?? const AppLocalizations(AppLocale.en);
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        const AppLocalizations(AppLocale.en);
   }
 
   String t(String key) =>
@@ -55,7 +51,7 @@ class AppLocalizations {
       'latest_6': 'Latest 6',
       'no_alerts': 'No alerts — herd is healthy!',
       'herd_overview': 'Herd overview',
-      'demo_banner': 'Demo mode — connect to a LIV gateway in Settings to see live data.',
+      'demo_banner': 'Demo mode — the app is currently using local sample data.',
       'min_ago': '{n}m ago',
       'hr_ago': '{n}h ago',
 
@@ -171,23 +167,26 @@ class AppLocalizations {
       // Settings Screen
       'settings': 'Settings',
       'server_connection': 'Server connection',
-      'server_desc': 'Enter the IP address and port of your LIV Node.js gateway server. Make sure your phone is on the same Wi-Fi network as the server.',
-      'server_url': 'Server URL',
-      'connect': 'Connect',
+      'server_desc':
+          'Enter your AWS API Gateway base URL for the LIV backend. Example: https://your-api-id.execute-api.eu-central-1.amazonaws.com',
+      'server_url': 'API Base URL',
+      'connect': 'Save',
       'saved': 'Saved!',
       'connection_status': 'Connection status',
       'server': 'Server',
       'connected': 'Connected',
       'disconnected': 'Disconnected',
+      'configured': 'Configured',
+      'not_configured': 'Not configured',
       'data_mode': 'Data mode',
-      'demo_seed': 'Demo (seed data)',
+      'demo_seed': 'Demo (local sample data)',
       'gateway_id': 'Gateway ID',
       'udp_status': 'UDP status',
       'mqtt_status': 'MQTT status',
       'demo_data': 'Demo data',
-      'demo_reset_desc': 'Reset the server\'s seeded demo state back to initial values. This calls POST /api/demo/reset on the connected server.',
-      'reset_demo': 'Reset demo state',
-      'demo_reset_ok': 'Demo state reset ✓',
+      'demo_reset_desc': 'Reset the app back to its local demo data. This does not call the backend.',
+      'reset_demo': 'Reset demo data',
+      'demo_reset_ok': 'Demo data reset ✓',
       'about': 'About',
       'app_label': 'App',
       'version': 'Version',
@@ -226,7 +225,7 @@ class AppLocalizations {
       'latest_6': 'آخر 6',
       'no_alerts': 'لا تنبيهات — القطيع بصحة جيدة!',
       'herd_overview': 'نظرة عامة على القطيع',
-      'demo_banner': 'وضع تجريبي — اتصل ببوابة LIV في الإعدادات لرؤية البيانات المباشرة.',
+      'demo_banner': 'وضع تجريبي — التطبيق يستخدم حالياً بيانات محلية تجريبية.',
       'min_ago': 'منذ {n} دقيقة',
       'hr_ago': 'منذ {n} ساعة',
 
@@ -342,23 +341,26 @@ class AppLocalizations {
       // Settings Screen
       'settings': 'الإعدادات',
       'server_connection': 'اتصال الخادم',
-      'server_desc': 'أدخل عنوان IP والمنفذ لخادم LIV Node.js. تأكد من أن هاتفك على نفس شبكة Wi-Fi.',
-      'server_url': 'رابط الخادم',
-      'connect': 'اتصال',
+      'server_desc':
+          'أدخل رابط AWS API Gateway الأساسي الخاص بخلفية LIV. مثال: https://your-api-id.execute-api.eu-central-1.amazonaws.com',
+      'server_url': 'رابط API الأساسي',
+      'connect': 'حفظ',
       'saved': 'تم الحفظ!',
       'connection_status': 'حالة الاتصال',
       'server': 'الخادم',
       'connected': 'متصل',
       'disconnected': 'غير متصل',
+      'configured': 'تم الإعداد',
+      'not_configured': 'غير مُعد',
       'data_mode': 'وضع البيانات',
-      'demo_seed': 'تجريبي (بيانات أولية)',
+      'demo_seed': 'تجريبي (بيانات محلية)',
       'gateway_id': 'معرّف البوابة',
       'udp_status': 'حالة UDP',
       'mqtt_status': 'حالة MQTT',
       'demo_data': 'البيانات التجريبية',
-      'demo_reset_desc': 'إعادة تعيين الحالة التجريبية إلى القيم الأولية. يستدعي POST /api/demo/reset.',
-      'reset_demo': 'إعادة تعيين التجريبي',
-      'demo_reset_ok': 'تمت إعادة تعيين التجريبي ✓',
+      'demo_reset_desc': 'إعادة التطبيق إلى بياناته التجريبية المحلية. هذا لا يستدعي الخلفية.',
+      'reset_demo': 'إعادة تعيين البيانات التجريبية',
+      'demo_reset_ok': 'تمت إعادة تعيين البيانات التجريبية ✓',
       'about': 'حول',
       'app_label': 'التطبيق',
       'version': 'الإصدار',
@@ -379,8 +381,7 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
 
   @override
-  Future<AppLocalizations> load(Locale locale) async =>
-      AppLocalizations(this.locale);
+  Future<AppLocalizations> load(Locale locale) async => AppLocalizations(this.locale);
 
   @override
   bool shouldReload(AppLocalizationsDelegate old) => old.locale != locale;
