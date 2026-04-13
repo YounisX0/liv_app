@@ -36,7 +36,6 @@ class OverviewScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 if (state.useDemoData) DemoBanner(message: l.t('demo_banner')),
 
-                // ── KPI row ───────────────────────────────────────────────
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -54,7 +53,9 @@ class OverviewScreen extends StatelessWidget {
                       label: l.t('healthy'),
                       value: '$healthyCnt',
                       valueColor: LivTheme.ok,
-                      hint: healthyCnt == state.cows.length ? l.t('all_clear') : l.t('check_others'),
+                      hint: healthyCnt == state.cows.length
+                          ? l.t('all_clear')
+                          : l.t('check_others'),
                     ),
                     KpiCard(
                       label: l.t('active_alerts'),
@@ -70,7 +71,6 @@ class OverviewScreen extends StatelessWidget {
                   ],
                 ),
 
-                // ── Health breakdown ──────────────────────────────────────
                 SectionHeader(title: l.t('herd_health_breakdown')),
                 ...healthCounts.entries.map((e) {
                   final badge = HealthBadge(e.key);
@@ -78,15 +78,20 @@ class OverviewScreen extends StatelessWidget {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      title: Text(
+                        e.key,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       subtitle: Text('${e.value} $cowWord'),
                       trailing: badge,
                     ),
                   );
                 }),
 
-                // ── Recent alerts ─────────────────────────────────────────
-                SectionHeader(title: l.t('recent_alerts'), subtitle: l.t('latest_6')),
+                SectionHeader(
+                  title: l.t('recent_alerts'),
+                  subtitle: l.t('latest_6'),
+                ),
                 if (topAlerts.isEmpty)
                   Card(
                     child: Padding(
@@ -102,9 +107,8 @@ class OverviewScreen extends StatelessWidget {
                   ),
                 ...topAlerts.map((a) => _AlertCard(alert: a, cows: state.cows, l: l)),
 
-                // ── Quick cow list ────────────────────────────────────────
                 SectionHeader(title: l.t('herd_overview')),
-                ...state.cows.map((c) => _CowRow(cow: c)),
+                ...state.cows.map((c) => _CowRow(cow: c, l: l)),
 
                 const SizedBox(height: 32),
               ]),
@@ -120,12 +124,18 @@ class _AlertCard extends StatelessWidget {
   final FarmAlert alert;
   final List<Cow> cows;
   final AppLocalizations l;
-  const _AlertCard({required this.alert, required this.cows, required this.l});
+
+  const _AlertCard({
+    required this.alert,
+    required this.cows,
+    required this.l,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cow = cows.where((c) => c.id == alert.cowId).firstOrNull;
     final time = _fmtTime(alert.createdAt, l);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -142,17 +152,40 @@ class _AlertCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                          child: Text(alert.title,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
-                      Text(time, style: const TextStyle(fontSize: 11, color: LivTheme.muted)),
+                        child: Text(
+                          alert.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        time,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: LivTheme.muted,
+                        ),
+                      ),
                     ],
                   ),
                   if (cow != null)
-                    Text(cow.name,
-                        style: const TextStyle(
-                            fontSize: 12, color: LivTheme.accent, fontWeight: FontWeight.w600)),
+                    Text(
+                      cow.name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LivTheme.accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   const SizedBox(height: 4),
-                  Text(alert.details, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+                  Text(
+                    alert.details,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: LivTheme.muted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -166,7 +199,9 @@ class _AlertCard extends StatelessWidget {
     try {
       final t = DateTime.parse(iso);
       final diff = DateTime.now().difference(t);
-      if (diff.inMinutes < 60) return l.t('min_ago').replaceAll('{n}', '${diff.inMinutes}');
+      if (diff.inMinutes < 60) {
+        return l.t('min_ago').replaceAll('{n}', '${diff.inMinutes}');
+      }
       return l.t('hr_ago').replaceAll('{n}', '${diff.inHours}');
     } catch (_) {
       return '';
@@ -176,10 +211,19 @@ class _AlertCard extends StatelessWidget {
 
 class _CowRow extends StatelessWidget {
   final Cow cow;
-  const _CowRow({required this.cow});
+  final AppLocalizations l;
+
+  const _CowRow({
+    required this.cow,
+    required this.l,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final tempText = cow.vitals.tempC != null
+        ? '${cow.vitals.tempC!.toStringAsFixed(1)} °C'
+        : l.t('no_data');
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -199,17 +243,29 @@ class _CowRow extends StatelessWidget {
                   color: LivTheme.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Center(child: Text('🐄', style: TextStyle(fontSize: 22))),
+                child: const Center(
+                  child: Text('🐄', style: TextStyle(fontSize: 22)),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(cow.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    Text('${cow.breed} · ${cow.id}',
-                        style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+                    Text(
+                      cow.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      '${cow.breed} · ${cow.id}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LivTheme.muted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -218,12 +274,21 @@ class _CowRow extends StatelessWidget {
                 children: [
                   HealthBadge(cow.healthStatus),
                   const SizedBox(height: 4),
-                  Text('${cow.vitals.tempC.toStringAsFixed(1)} °C',
-                      style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
+                  Text(
+                    tempText,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: LivTheme.muted,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: LivTheme.muted, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: LivTheme.muted,
+                size: 20,
+              ),
             ],
           ),
         ),

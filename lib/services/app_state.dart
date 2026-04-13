@@ -9,17 +9,13 @@ import 'auth_service.dart';
 import 'cows_service.dart';
 
 class AppState extends ChangeNotifier {
-  // ── Storage keys ───────────────────────────────────────────────────────────
   static const String _serverUrlKey = 'server_url';
   static const String _localeKey = 'locale';
   static const String _authTokenKey = 'auth_token';
 
-  // Default confirmed backend base URL.
-  // You can still change it later from Settings.
   static const String defaultApiBaseUrl =
       'https://onw84kzqif.execute-api.eu-central-1.amazonaws.com';
 
-  // ── Server connection ─────────────────────────────────────────────────────
   String _serverUrl = defaultApiBaseUrl;
   String get serverUrl => _serverUrl;
 
@@ -28,11 +24,9 @@ class AppState extends ChangeNotifier {
 
   bool get hasServerUrl => _serverUrl.trim().isNotEmpty;
 
-  // ── Locale ────────────────────────────────────────────────────────────────
   AppLocale _locale = AppLocale.en;
   AppLocale get locale => _locale;
 
-  // ── Auth / backend state ─────────────────────────────────────────────────
   bool _isInitializing = true;
   bool get isInitializing => _isInitializing;
 
@@ -58,13 +52,30 @@ class AppState extends ChangeNotifier {
       _authToken!.trim().isNotEmpty &&
       _currentUser != null;
 
-  // ── Cloud dashboard state ─────────────────────────────────────────────────
+  final List<String> _cowOrder = [];
+  final Map<String, ApiCow> _cowDetailsById = {};
+  final Map<String, ApiCowLatestState?> _latestStateByCowId = {};
+  final Map<String, List<ApiPredictionRecord>> _predictionsByCowId = {};
+  final Set<String> _loadingCowIds = {};
+  final Map<String, String> _cowErrors = {};
+
+  ApiCow? cowDetailsCache(String cowId) => _cowDetailsById[cowId];
+
+  ApiCowLatestState? cowLatestStateCache(String cowId) =>
+      _latestStateByCowId[cowId];
+
+  List<ApiPredictionRecord> cowPredictionsCache(String cowId) =>
+      List.unmodifiable(_predictionsByCowId[cowId] ?? const []);
+
+  bool isCowDataLoading(String cowId) => _loadingCowIds.contains(cowId);
+
+  String? cowDataError(String cowId) => _cowErrors[cowId];
+
   List<Cow> cows = [];
   List<Device> devices = [];
   List<Sire> sires = [];
   List<FarmAlert> alerts = [];
 
-  // ── Gateway telemetry state ───────────────────────────────────────────────
   String udpStatus = 'Waiting...';
   String mqttStatus = 'Not connected';
   String lastPacketTime = '--';
@@ -75,7 +86,6 @@ class AppState extends ChangeNotifier {
   TelemetryPacket? latestPacket;
   final List<TelemetryPacket> packetFeed = [];
 
-  // Chart histories (max 40 pts)
   final List<double> tempHistory = [];
   final List<double> hrHistory = [];
   final List<double> spo2History = [];
@@ -89,12 +99,10 @@ class AppState extends ChangeNotifier {
     initialize();
   }
 
-  // ── Services ──────────────────────────────────────────────────────────────
   ApiClient get _apiClient => ApiClient(baseUrl: _serverUrl);
   AuthService get _authService => AuthService(_apiClient);
   CowsService get _cowsService => CowsService(_apiClient);
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   Future<void> initialize() async {
     _isInitializing = true;
     _loadDemo(notify: false);
@@ -107,7 +115,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Locale ────────────────────────────────────────────────────────────────
   void setLocale(AppLocale loc) {
     _locale = loc;
     _saveLocale(loc);
@@ -125,18 +132,15 @@ class AppState extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final code = prefs.getString(_localeKey);
-      if (code == 'ar') {
-        _locale = AppLocale.ar;
-      } else {
-        _locale = AppLocale.en;
-      }
+      _locale = code == 'ar' ? AppLocale.ar : AppLocale.en;
     } catch (_) {
       _locale = AppLocale.en;
     }
   }
 
-  // ── Demo seed state ───────────────────────────────────────────────────────
   void _loadDemo({bool notify = true}) {
+    _clearCowCaches();
+
     cows = DemoData.cows();
     devices = DemoData.devices();
     sires = DemoData.sires();
@@ -149,6 +153,15 @@ class AppState extends ChangeNotifier {
     if (notify) {
       notifyListeners();
     }
+  }
+
+  void _clearCowCaches() {
+    _cowOrder.clear();
+    _cowDetailsById.clear();
+    _latestStateByCowId.clear();
+    _predictionsByCowId.clear();
+    _loadingCowIds.clear();
+    _cowErrors.clear();
   }
 
   void _resetGatewayState() {
@@ -168,7 +181,6 @@ class AppState extends ChangeNotifier {
     gyroHistory.clear();
   }
 
-  // ── Server config ─────────────────────────────────────────────────────────
   Future<void> _loadServerUrl() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -203,13 +215,11 @@ class AppState extends ChangeNotifier {
     _serverUrl = normalized.isEmpty ? defaultApiBaseUrl : normalized;
     _saveServerUrl(_serverUrl);
 
-    // Force a reconnect state until next successful API call.
     _connected = false;
     _errorMessage = null;
     notifyListeners();
   }
 
-  // ── Token/session persistence ─────────────────────────────────────────────
   Future<void> _saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -264,7 +274,6 @@ class AppState extends ChangeNotifier {
     await _clearSavedToken();
   }
 
-  // ── Error helpers ─────────────────────────────────────────────────────────
   void clearError() {
     _errorMessage = null;
     notifyListeners();
@@ -277,7 +286,6 @@ class AppState extends ChangeNotifier {
     return 'Something went wrong. Please try again.';
   }
 
-  // ── Auth actions ──────────────────────────────────────────────────────────
   Future<bool> signup({
     required String email,
     required String password,
@@ -350,7 +358,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Backend data actions ──────────────────────────────────────────────────
   Future<bool> fetchMe({bool notify = true}) async {
     if (_authToken == null || _authToken!.trim().isEmpty) {
       _errorMessage = 'No auth token found.';
@@ -392,14 +399,31 @@ class AppState extends ChangeNotifier {
     try {
       final apiCows = await _cowsService.getCows(token: _authToken!);
 
-      cows = apiCows.map(_mapApiCowToUiCow).toList();
-      devices = _buildDevicesFromApiCows(apiCows);
+      _cowOrder
+        ..clear()
+        ..addAll(apiCows.map((e) => e.cowId));
 
-      // Keep demo sires for now so the breeding tab does not break in Phase 1.
+      _cowDetailsById
+        ..clear()
+        ..addEntries(apiCows.map((e) => MapEntry(e.cowId, e)));
+
+      _latestStateByCowId.removeWhere(
+        (cowId, _) => !_cowDetailsById.containsKey(cowId),
+      );
+      _predictionsByCowId.removeWhere(
+        (cowId, _) => !_cowDetailsById.containsKey(cowId),
+      );
+      _cowErrors.removeWhere(
+        (cowId, _) => !_cowDetailsById.containsKey(cowId),
+      );
+      _loadingCowIds.removeWhere(
+        (cowId) => !_cowDetailsById.containsKey(cowId),
+      );
+
+      await _prefetchLatestStates(apiCows);
+      _rebuildUiStateFromCaches();
+
       sires = DemoData.sires();
-
-      // No backend alerts endpoint yet in Phase 1.
-      alerts = [];
 
       _useDemoData = false;
       _connected = true;
@@ -418,6 +442,93 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> _prefetchLatestStates(List<ApiCow> apiCows) async {
+    if (_authToken == null || _authToken!.trim().isEmpty) return;
+
+    await Future.wait(
+      apiCows.map((cow) async {
+        try {
+          final latest = await _cowsService.getCowLatestState(
+            token: _authToken!,
+            cowId: cow.cowId,
+          );
+          _latestStateByCowId[cow.cowId] = latest;
+        } catch (_) {
+          _latestStateByCowId[cow.cowId] = null;
+        }
+      }),
+    );
+  }
+
+  Future<bool> loadCowProfileData(
+    String cowId, {
+    bool force = false,
+  }) async {
+    if (_authToken == null || _authToken!.trim().isEmpty) {
+      return false;
+    }
+
+    final alreadyReady = _cowDetailsById.containsKey(cowId) &&
+        _latestStateByCowId.containsKey(cowId) &&
+        _predictionsByCowId.containsKey(cowId);
+
+    if (!force && alreadyReady) {
+      return true;
+    }
+
+    if (_loadingCowIds.contains(cowId)) {
+      return false;
+    }
+
+    _loadingCowIds.add(cowId);
+    _cowErrors.remove(cowId);
+    notifyListeners();
+
+    try {
+      final detailFuture = _cowsService.getCowById(
+        token: _authToken!,
+        cowId: cowId,
+      );
+      final latestFuture = _cowsService.getCowLatestState(
+        token: _authToken!,
+        cowId: cowId,
+      );
+      final predictionsFuture = _cowsService.getCowPredictions(
+        token: _authToken!,
+        cowId: cowId,
+      );
+
+      final detail = await detailFuture;
+      final latest = await latestFuture;
+      final predictions = await predictionsFuture;
+
+      _cowDetailsById[cowId] = detail;
+      _latestStateByCowId[cowId] = latest;
+      _predictionsByCowId[cowId] = predictions;
+
+      if (!_cowOrder.contains(cowId)) {
+        _cowOrder.add(cowId);
+      }
+
+      _rebuildUiStateFromCaches();
+
+      _loadingCowIds.remove(cowId);
+      _cowErrors.remove(cowId);
+      _connected = true;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _loadingCowIds.remove(cowId);
+      _cowErrors[cowId] = _readableError(error);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> refreshCowData(String cowId) {
+    return loadCowProfileData(cowId, force: true);
+  }
+
   Future<bool> refreshLiveData() async {
     if (!isAuthenticated) {
       return false;
@@ -430,10 +541,7 @@ class AppState extends ChangeNotifier {
     return okMe && okCows;
   }
 
-  // ── Existing refresh hook used by current UI ──────────────────────────────
   Future<void> resetDemo() async {
-    // Keep existing button behavior for demo mode,
-    // but make pull-to-refresh useful after login.
     if (isAuthenticated && !_useDemoData) {
       await refreshLiveData();
       return;
@@ -442,45 +550,250 @@ class AppState extends ChangeNotifier {
     _loadDemo();
   }
 
-  // ── Mapping helpers: backend cow -> current UI cow ────────────────────────
-  Cow _mapApiCowToUiCow(ApiCow apiCow) {
-    final ageYears = apiCow.ageMonths / 12.0;
+  void _rebuildUiStateFromCaches() {
+    final previousCowById = <String, Cow>{
+      for (final cow in cows) cow.id: cow,
+    };
+    final previousDeviceById = <String, Device>{
+      for (final device in devices) device.id: device,
+    };
+
+    final rebuiltCows = <Cow>[];
+    final rebuiltDevices = <Device>[];
+
+    for (final cowId in _cowOrder) {
+      final detail = _cowDetailsById[cowId];
+      if (detail == null) continue;
+
+      final latest = _latestStateByCowId[cowId];
+      final predictions = _predictionsByCowId[cowId] ?? const <ApiPredictionRecord>[];
+      final previousCow = previousCowById[cowId];
+
+      final uiCow = _mapApiCowToUiCow(
+        detail,
+        latest: latest,
+        predictions: predictions,
+        previous: previousCow,
+      );
+      rebuiltCows.add(uiCow);
+
+      if (detail.deviceId.trim().isNotEmpty) {
+        rebuiltDevices.add(
+          _mapApiDevice(
+            detail,
+            latest: latest,
+            previous: previousDeviceById[detail.deviceId],
+          ),
+        );
+      }
+    }
+
+    cows = rebuiltCows;
+    devices = _dedupeDevices(rebuiltDevices);
+    alerts = _buildDerivedAlerts(cows);
+  }
+
+  List<Device> _dedupeDevices(List<Device> items) {
+    final map = <String, Device>{};
+    for (final item in items) {
+      map[item.id] = item;
+    }
+    return map.values.toList();
+  }
+
+  Cow _mapApiCowToUiCow(
+    ApiCow apiCow, {
+    ApiCowLatestState? latest,
+    List<ApiPredictionRecord> predictions = const [],
+    Cow? previous,
+  }) {
+    final healthStatus = _normalizeHealthStatus(
+      latest?.predictedLabel.isNotEmpty == true
+          ? latest!.predictedLabel
+          : latest?.status ?? previous?.healthStatus ?? 'Healthy',
+    );
+
+    final lastPrediction = predictions.isNotEmpty ? predictions.first : null;
+
+    final tempC = latest?.tempC ??
+        lastPrediction?.tempC ??
+        previous?.vitals.tempC;
+
+    final hrBpm = latest?.hrBpm ??
+        lastPrediction?.hrBpm ??
+        previous?.vitals.hrBpm;
+
+    final spO2 = latest?.spO2 ??
+        lastPrediction?.spO2 ??
+        previous?.vitals.spO2;
+
+    final activity = latest?.activity ??
+        lastPrediction?.activity ??
+        previous?.vitals.activity;
+
+    final vitalsHistory = _buildTempHistory(
+      predictions,
+      fallbackTemp: tempC,
+      previous: previous,
+    );
 
     return Cow(
       id: apiCow.cowId,
-      name: apiCow.name.isEmpty ? apiCow.tagNumber : apiCow.name,
+      name: apiCow.name.trim().isEmpty ? apiCow.tagNumber : apiCow.name,
       breed: apiCow.breed,
-      ageYears: ageYears,
-      parity: 0,
+      ageYears: apiCow.ageMonths / 12.0,
+      parity: previous?.parity ?? 0,
       deviceId: apiCow.deviceId,
-      healthStatus: 'Healthy',
-      lastSeen: apiCow.createdAt,
-      vitals: const Vitals(),
-      vitalsHistory: const [],
-      fertility: const Fertility(),
+      healthStatus: healthStatus,
+      lastSeen: _pickTimestamp(
+        latest?.timestamp,
+        previous?.lastSeen,
+        apiCow.createdAt,
+      ),
+      vitals: Vitals(
+        tempC: tempC,
+        hrBpm: hrBpm,
+        spO2: spO2,
+        activity: activity,
+      ),
+      vitalsHistory: vitalsHistory,
+      fertility: previous?.fertility ?? const Fertility(),
     );
   }
 
-  List<Device> _buildDevicesFromApiCows(List<ApiCow> apiCows) {
-    final seen = <String>{};
-    final result = <Device>[];
+  Device _mapApiDevice(
+    ApiCow apiCow, {
+    ApiCowLatestState? latest,
+    Device? previous,
+  }) {
+    final ageSec = latest?.lastPacketSecAgo ??
+        _estimateSecondsSince(latest?.timestamp) ??
+        previous?.lastPacketSecAgo ??
+        0;
 
-    for (final cow in apiCows) {
-      final id = cow.deviceId.trim();
-      if (id.isEmpty || seen.contains(id)) continue;
+    final status = ageSec > 300 ? 'Offline' : 'Online';
 
-      seen.add(id);
-      result.add(
-        Device(
-          id: id,
-          battery: 100,
-          signal: -68,
-          lastPacketSecAgo: 0,
-          status: 'Online',
+    return Device(
+      id: apiCow.deviceId,
+      battery: latest?.battery ?? previous?.battery ?? 100,
+      signal: latest?.signal ?? previous?.signal ?? -68,
+      lastPacketSecAgo: ageSec,
+      status: status,
+    );
+  }
+
+  List<double> _buildTempHistory(
+    List<ApiPredictionRecord> predictions, {
+    required double? fallbackTemp,
+    Cow? previous,
+  }) {
+    final temps = predictions
+        .map((p) => p.tempC)
+        .whereType<double>()
+        .toList()
+        .reversed
+        .toList();
+
+    if (temps.isNotEmpty) {
+      return temps;
+    }
+
+    if (previous != null && previous.vitalsHistory.isNotEmpty) {
+      return previous.vitalsHistory;
+    }
+
+    if (fallbackTemp != null) {
+      return [fallbackTemp];
+    }
+
+    return const [];
+  }
+
+  List<FarmAlert> _buildDerivedAlerts(List<Cow> cows) {
+    final out = <FarmAlert>[];
+
+    for (final cow in cows) {
+      if (cow.healthStatus == 'Healthy') continue;
+
+      out.add(
+        FarmAlert(
+          id: 'alert_${cow.id}_${cow.healthStatus}',
+          severity: _alertSeverityForHealth(cow.healthStatus),
+          title: '${cow.healthStatus} detected',
+          cowId: cow.id,
+          createdAt: cow.lastSeen.isNotEmpty
+              ? cow.lastSeen
+              : DateTime.now().toIso8601String(),
+          details:
+              'Latest readings indicate ${cow.healthStatus.toLowerCase()} for ${cow.name}.',
         ),
       );
     }
 
-    return result;
+    out.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return out;
+  }
+
+  String _alertSeverityForHealth(String healthStatus) {
+    switch (healthStatus) {
+      case 'Fever':
+      case 'Low SpO2':
+        return 'danger';
+      case 'Heat Stress':
+        return 'warning';
+      default:
+        return 'info';
+    }
+  }
+
+  String _normalizeHealthStatus(String raw) {
+    final v = raw.trim().toLowerCase();
+
+    if (v.isEmpty) return 'Healthy';
+    if (v.contains('healthy') || v == 'normal' || v == 'ok') {
+      return 'Healthy';
+    }
+    if (v.contains('heat')) {
+      return 'Heat Stress';
+    }
+    if (v.contains('spo2') || v.contains('spo₂') || v.contains('oxygen')) {
+      return 'Low SpO2';
+    }
+    if (v.contains('fever') || v.contains('high temp') || v.contains('temperature')) {
+      return 'Fever';
+    }
+
+    return _titleCase(raw);
+  }
+
+  String _titleCase(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return 'Healthy';
+
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
+  }
+
+  String _pickTimestamp(String? a, String? b, String c) {
+    if (a != null && a.trim().isNotEmpty) return a;
+    if (b != null && b.trim().isNotEmpty) return b;
+    return c;
+  }
+
+  int? _estimateSecondsSince(String? iso) {
+    if (iso == null || iso.trim().isEmpty) return null;
+    try {
+      final dt = DateTime.parse(iso).toUtc();
+      final now = DateTime.now().toUtc();
+      final sec = now.difference(dt).inSeconds;
+      return sec < 0 ? 0 : sec;
+    } catch (_) {
+      return null;
+    }
   }
 }

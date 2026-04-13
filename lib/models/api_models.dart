@@ -92,6 +92,166 @@ class ApiCow {
   }
 }
 
+class ApiCowLatestState {
+  final String cowId;
+  final String farmId;
+  final String timestamp;
+  final String status;
+  final String predictedLabel;
+  final double confidence;
+
+  final double? tempC;
+  final double? hrBpm;
+  final double? spO2;
+  final double? activity;
+
+  final String deviceId;
+  final int? battery;
+  final int? signal;
+  final int? lastPacketSecAgo;
+
+  const ApiCowLatestState({
+    required this.cowId,
+    required this.farmId,
+    required this.timestamp,
+    required this.status,
+    required this.predictedLabel,
+    required this.confidence,
+    required this.tempC,
+    required this.hrBpm,
+    required this.spO2,
+    required this.activity,
+    required this.deviceId,
+    required this.battery,
+    required this.signal,
+    required this.lastPacketSecAgo,
+  });
+
+  factory ApiCowLatestState.fromJson(Map<String, dynamic> json) {
+    String readString(List<String> keys, {String fallback = ''}) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+      return fallback;
+    }
+
+    double? readDouble(List<String> keys) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value == null) continue;
+        if (value is num) return value.toDouble();
+        final parsed = double.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    int? readInt(List<String> keys) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value == null) continue;
+        if (value is int) return value;
+        if (value is double) return value.toInt();
+        final parsed = int.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    final predicted = readString(
+      ['predictedLabel', 'prediction', 'label', 'healthStatus', 'status'],
+      fallback: 'Healthy',
+    );
+
+    final status = readString(
+      ['status', 'healthStatus', 'state'],
+      fallback: predicted,
+    );
+
+    return ApiCowLatestState(
+      cowId: readString(['cowId']),
+      farmId: readString(['farmId']),
+      timestamp: readString(
+        ['timestamp', 'ts', 'updatedAt', 'createdAt', 'time'],
+      ),
+      status: status,
+      predictedLabel: predicted,
+      confidence: readDouble(['confidence', 'score', 'probability']) ?? 0,
+      tempC: readDouble(['tempC', 'temp', 'temperature']),
+      hrBpm: readDouble(['hrBpm', 'hr', 'heartRate', 'heart_rate']),
+      spO2: readDouble(['spO2', 'spo2', 'oxygen', 'oxygenSaturation']),
+      activity: readDouble(['activity', 'activityScore', 'motion']),
+      deviceId: readString(['deviceId']),
+      battery: readInt(['battery', 'batteryPct']),
+      signal: readInt(['signal', 'rssi']),
+      lastPacketSecAgo: readInt(['lastPacketSecAgo', 'secondsAgo']),
+    );
+  }
+}
+
+class ApiPredictionRecord {
+  final String cowId;
+  final String timestamp;
+  final String predictedLabel;
+  final double confidence;
+
+  final double? tempC;
+  final double? hrBpm;
+  final double? spO2;
+  final double? activity;
+
+  const ApiPredictionRecord({
+    required this.cowId,
+    required this.timestamp,
+    required this.predictedLabel,
+    required this.confidence,
+    required this.tempC,
+    required this.hrBpm,
+    required this.spO2,
+    required this.activity,
+  });
+
+  factory ApiPredictionRecord.fromJson(Map<String, dynamic> json) {
+    String readString(List<String> keys, {String fallback = ''}) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value.toString();
+        }
+      }
+      return fallback;
+    }
+
+    double? readDouble(List<String> keys) {
+      for (final key in keys) {
+        final value = json[key];
+        if (value == null) continue;
+        if (value is num) return value.toDouble();
+        final parsed = double.tryParse(value.toString());
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    return ApiPredictionRecord(
+      cowId: readString(['cowId']),
+      timestamp: readString(['timestamp', 'ts', 'createdAt', 'time']),
+      predictedLabel: readString(
+        ['predictedLabel', 'prediction', 'label', 'healthStatus', 'status'],
+        fallback: 'Healthy',
+      ),
+      confidence: readDouble(['confidence', 'score', 'probability']) ?? 0,
+      tempC: readDouble(['tempC', 'temp', 'temperature']),
+      hrBpm: readDouble(['hrBpm', 'hr', 'heartRate', 'heart_rate']),
+      spO2: readDouble(['spO2', 'spo2', 'oxygen', 'oxygenSaturation']),
+      activity: readDouble(['activity', 'activityScore', 'motion']),
+    );
+  }
+}
+
 class LoginResponse {
   final String token;
   final ApiUser user;

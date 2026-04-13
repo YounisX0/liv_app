@@ -2,23 +2,23 @@
 // Mirrors the initialState() and server payloads from the web app.
 
 class Vitals {
-  final double tempC;
-  final double hrBpm;
-  final double spO2;
-  final double activity;
+  final double? tempC;
+  final double? hrBpm;
+  final double? spO2;
+  final double? activity;
 
   const Vitals({
-    this.tempC = 38.5,
-    this.hrBpm = 78,
-    this.spO2 = 96,
-    this.activity = 60,
+    this.tempC,
+    this.hrBpm,
+    this.spO2,
+    this.activity,
   });
 
   factory Vitals.fromJson(Map<String, dynamic> j) => Vitals(
-        tempC: (j['tempC'] ?? 38.5).toDouble(),
-        hrBpm: (j['hrBpm'] ?? 78).toDouble(),
-        spO2: (j['spO2'] ?? 96).toDouble(),
-        activity: (j['activity'] ?? 60).toDouble(),
+        tempC: j['tempC'] != null ? (j['tempC'] as num).toDouble() : null,
+        hrBpm: j['hrBpm'] != null ? (j['hrBpm'] as num).toDouble() : null,
+        spO2: j['spO2'] != null ? (j['spO2'] as num).toDouble() : null,
+        activity: j['activity'] != null ? (j['activity'] as num).toDouble() : null,
       );
 }
 
@@ -88,7 +88,8 @@ class Cow {
         vitals: j['vitals'] != null ? Vitals.fromJson(j['vitals']) : const Vitals(),
         vitalsHistory: j['vitalsHistory'] != null
             ? List<double>.from(
-                (j['vitalsHistory'] as List).map((e) => (e['v'] ?? e).toDouble()))
+                (j['vitalsHistory'] as List).map((e) => (e['v'] ?? e).toDouble()),
+              )
             : [],
         fertility: j['fertility'] != null
             ? Fertility.fromJson(j['fertility'])
@@ -301,16 +302,18 @@ class TelemetryPacket {
   double _sqrt(double v) {
     if (v <= 0) return 0;
     double x = v;
-    for (int i = 0; i < 20; i++) x = (x + v / x) / 2;
+    for (int i = 0; i < 20; i++) {
+      x = (x + v / x) / 2;
+    }
     return x;
   }
 }
 
-// ─── Demo seed data (mirrors initialState() in cloud.html) ────────────────────
+// ─── Demo seed data ────────────────────────────────────────────────────────────
 class DemoData {
   static List<Cow> cows() {
     final now = DateTime.now();
-    day(int d) => now.subtract(Duration(days: d)).toIso8601String();
+    String day(int d) => now.subtract(Duration(days: d)).toIso8601String();
 
     return [
       Cow(
@@ -362,31 +365,31 @@ class DemoData {
         deviceId: 'DEV-9QX',
         healthStatus: 'Healthy',
         lastSeen: now.toIso8601String(),
-        vitals: const Vitals(tempC: 38.9, hrBpm: 84, spO2: 95, activity: 55),
-        vitalsHistory: List.generate(40, (i) => 38.6 + (i % 5) * 0.14),
+        vitals: const Vitals(tempC: 38.5, hrBpm: 74, spO2: 98, activity: 58),
+        vitalsHistory: List.generate(40, (i) => 38.3 + (i % 2) * 0.15),
         fertility: Fertility(
-          lastEstrusDate: day(16),
-          predictedEstrusInDays: 5,
+          lastEstrusDate: day(4),
+          predictedEstrusInDays: 1,
           cycleLengthDays: 21,
           conceptionRate: 0.58,
-          bodyConditionScore: 3.3,
+          bodyConditionScore: 3.2,
           inbreedingRisk: 'Low',
         ),
       ),
       Cow(
         id: 'COW-404',
-        name: 'Mila',
-        breed: 'Holstein',
-        ageYears: 2.9,
-        parity: 0,
+        name: 'Hazel',
+        breed: 'Friesian',
+        ageYears: 4.8,
+        parity: 2,
         deviceId: 'DEV-88Z',
         healthStatus: 'Low SpO2',
         lastSeen: now.toIso8601String(),
-        vitals: const Vitals(tempC: 39.1, hrBpm: 98, spO2: 89, activity: 40),
-        vitalsHistory: List.generate(40, (i) => 38.9 + (i % 6) * 0.13),
+        vitals: const Vitals(tempC: 38.9, hrBpm: 91, spO2: 88, activity: 46),
+        vitalsHistory: List.generate(40, (i) => 38.6 + (i % 3) * 0.1),
         fertility: Fertility(
-          lastEstrusDate: day(2),
-          predictedEstrusInDays: 0,
+          lastEstrusDate: day(13),
+          predictedEstrusInDays: 6,
           cycleLengthDays: 21,
           conceptionRate: 0.35,
           bodyConditionScore: 2.7,
@@ -397,10 +400,34 @@ class DemoData {
   }
 
   static List<Device> devices() => [
-        const Device(id: 'DEV-77A', battery: 86, signal: -74, lastPacketSecAgo: 8, status: 'Online'),
-        const Device(id: 'DEV-12K', battery: 43, signal: -89, lastPacketSecAgo: 15, status: 'Online'),
-        const Device(id: 'DEV-9QX', battery: 67, signal: -80, lastPacketSecAgo: 11, status: 'Online'),
-        const Device(id: 'DEV-88Z', battery: 28, signal: -92, lastPacketSecAgo: 22, status: 'Online'),
+        const Device(
+          id: 'DEV-77A',
+          battery: 86,
+          signal: -74,
+          lastPacketSecAgo: 8,
+          status: 'Online',
+        ),
+        const Device(
+          id: 'DEV-12K',
+          battery: 43,
+          signal: -89,
+          lastPacketSecAgo: 15,
+          status: 'Online',
+        ),
+        const Device(
+          id: 'DEV-9QX',
+          battery: 67,
+          signal: -80,
+          lastPacketSecAgo: 11,
+          status: 'Online',
+        ),
+        const Device(
+          id: 'DEV-88Z',
+          battery: 28,
+          signal: -92,
+          lastPacketSecAgo: 22,
+          status: 'Online',
+        ),
       ];
 
   static List<Sire> sires() => [
@@ -409,7 +436,12 @@ class DemoData {
           name: 'Atlas Prime',
           semenBatch: 'AT-PR-204',
           traits: const SireTraits(
-              fertility: 8.2, diseaseResistance: 8.8, temperament: 7.2, milkYield: 7.6, calvingEase: 7.9),
+            fertility: 8.2,
+            diseaseResistance: 8.8,
+            temperament: 7.2,
+            milkYield: 7.6,
+            calvingEase: 7.9,
+          ),
           notes: 'Balanced sire. Strong fertility and health traits.',
         ),
         Sire(
@@ -417,7 +449,12 @@ class DemoData {
           name: 'Boreal King',
           semenBatch: 'BR-KG-881',
           traits: const SireTraits(
-              fertility: 6.9, diseaseResistance: 9.2, temperament: 6.4, milkYield: 8.9, calvingEase: 6.2),
+            fertility: 6.9,
+            diseaseResistance: 9.2,
+            temperament: 6.4,
+            milkYield: 8.9,
+            calvingEase: 6.2,
+          ),
           notes: 'High milk yield & disease resistance. Moderate calving ease.',
         ),
         Sire(
@@ -425,7 +462,12 @@ class DemoData {
           name: 'Calm Meadow',
           semenBatch: 'CM-MD-319',
           traits: const SireTraits(
-              fertility: 7.6, diseaseResistance: 7.4, temperament: 9.1, milkYield: 6.8, calvingEase: 8.6),
+            fertility: 7.6,
+            diseaseResistance: 7.4,
+            temperament: 9.1,
+            milkYield: 6.8,
+            calvingEase: 8.6,
+          ),
           notes: 'Excellent temperament and calving ease. Great for young cows.',
         ),
       ];
@@ -439,7 +481,8 @@ class DemoData {
         title: 'Heat stress risk',
         cowId: 'COW-202',
         createdAt: now.subtract(const Duration(minutes: 12)).toIso8601String(),
-        details: 'Temp elevated and activity pattern indicates heat stress. Recommend cooling & hydration.',
+        details:
+            'Temp elevated and activity pattern indicates heat stress. Recommend cooling & hydration.',
       ),
       FarmAlert(
         id: 'a2',
@@ -447,7 +490,8 @@ class DemoData {
         title: 'Low SpO₂ detected',
         cowId: 'COW-404',
         createdAt: now.subtract(const Duration(minutes: 25)).toIso8601String(),
-        details: 'SpO₂ dropped below safe threshold. Check ear sensor placement & assess respiratory health.',
+        details:
+            'SpO₂ dropped below safe threshold. Check ear sensor placement & assess respiratory health.',
       ),
     ];
   }
