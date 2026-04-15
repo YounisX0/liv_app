@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/admin_models.dart';
 import '../models/api_models.dart';
 import '../models/models.dart';
+import 'admin_service.dart';
 import 'api_client.dart';
 import 'auth_service.dart';
 import 'cows_service.dart';
@@ -16,6 +18,7 @@ class AppState extends ChangeNotifier {
   static const String defaultApiBaseUrl =
       'https://onw84kzqif.execute-api.eu-central-1.amazonaws.com';
 
+  // ── Server connection ─────────────────────────────────────────────────────
   String _serverUrl = defaultApiBaseUrl;
   String get serverUrl => _serverUrl;
 
@@ -24,9 +27,11 @@ class AppState extends ChangeNotifier {
 
   bool get hasServerUrl => _serverUrl.trim().isNotEmpty;
 
+  // ── Locale ────────────────────────────────────────────────────────────────
   AppLocale _locale = AppLocale.en;
   AppLocale get locale => _locale;
 
+  // ── Auth / backend state ─────────────────────────────────────────────────
   bool _isInitializing = true;
   bool get isInitializing => _isInitializing;
 
@@ -52,6 +57,28 @@ class AppState extends ChangeNotifier {
       _authToken!.trim().isNotEmpty &&
       _currentUser != null;
 
+  bool get isAdmin => (_currentUser?.role.toLowerCase() == 'admin');
+
+  // ── Admin state ──────────────────────────────────────────────────────────
+  AdminOverview? _adminOverview;
+  AdminOverview? get adminOverview => _adminOverview;
+
+  List<ApiUser> _adminUsers = [];
+  List<ApiUser> get adminUsers => List.unmodifiable(_adminUsers);
+
+  List<ApiCow> _adminCows = [];
+  List<ApiCow> get adminCows => List.unmodifiable(_adminCows);
+
+  bool _isAdminLoading = false;
+  bool get isAdminLoading => _isAdminLoading;
+
+  bool _isAdminMutating = false;
+  bool get isAdminMutating => _isAdminMutating;
+
+  String? _adminErrorMessage;
+  String? get adminErrorMessage => _adminErrorMessage;
+
+  // ── Live backend caches ──────────────────────────────────────────────────
   final List<String> _cowOrder = [];
   final Map<String, ApiCow> _cowDetailsById = {};
   final Map<String, ApiCowLatestState?> _latestStateByCowId = {};
@@ -71,11 +98,13 @@ class AppState extends ChangeNotifier {
 
   String? cowDataError(String cowId) => _cowErrors[cowId];
 
+  // ── UI-facing state used by the current screens ──────────────────────────
   List<Cow> cows = [];
   List<Device> devices = [];
   List<Sire> sires = [];
   List<FarmAlert> alerts = [];
 
+  // ── Gateway telemetry state ───────────────────────────────────────────────
   String udpStatus = 'Waiting...';
   String mqttStatus = 'Not connected';
   String lastPacketTime = '--';
@@ -99,10 +128,13 @@ class AppState extends ChangeNotifier {
     initialize();
   }
 
+  // ── Services ──────────────────────────────────────────────────────────────
   ApiClient get _apiClient => ApiClient(baseUrl: _serverUrl);
   AuthService get _authService => AuthService(_apiClient);
   CowsService get _cowsService => CowsService(_apiClient);
+  AdminService get _adminService => AdminService(_apiClient);
 
+  // ── Init ──────────────────────────────────────────────────────────────────
   Future<void> initialize() async {
     _isInitializing = true;
     _loadDemo(notify: false);
@@ -115,6 +147,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Locale ────────────────────────────────────────────────────────────────
   void setLocale(AppLocale loc) {
     _locale = loc;
     _saveLocale(loc);
@@ -138,8 +171,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ── Demo state ────────────────────────────────────────────────────────────
   void _loadDemo({bool notify = true}) {
     _clearCowCaches();
+    _clearAdminState(notify: false);
 
     cows = DemoData.cows();
     devices = DemoData.devices();
@@ -164,6 +199,28 @@ class AppState extends ChangeNotifier {
     _cowErrors.clear();
   }
 
+  void _clearAdminState({bool notify = true}) {
+    _adminOverview = null;
+    _adminUsers = [];
+    _adminCows = [];
+    _adminErrorMessage = null;
+    _isAdminLoading = false;
+    _isAdminMutating = false;
+
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void _clearNormalUiState() {
+    _clearCowCaches();
+    cows = [];
+    devices = [];
+    alerts = [];
+    sires = [];
+    _resetGatewayState();
+  }
+
   void _resetGatewayState() {
     udpStatus = 'Waiting...';
     mqttStatus = 'Not connected';
@@ -181,6 +238,7 @@ class AppState extends ChangeNotifier {
     gyroHistory.clear();
   }
 
+  // ── Server config ─────────────────────────────────────────────────────────
   Future<void> _loadServerUrl() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -220,6 +278,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Token/session persistence ─────────────────────────────────────────────
   Future<void> _saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -248,17 +307,25 @@ class AppState extends ChangeNotifier {
 
       _authToken = token;
 
-      try {
-        await fetchMe(notify: false);
-        await fetchCows(notify: false);
-
-        _useDemoData = false;
-        _connected = true;
-        _errorMessage = null;
-      } catch (_) {
+      final okMe = await fetchMe(notify: false);
+      if (!okMe) {
         await _clearSessionInMemoryAndStorage();
         _loadDemo(notify: false);
+        return;
       }
+
+      if (isAdmin) {
+        _clearNormalUiState();
+        await fetchAdminData(notify: false);
+        await fetchCows(notify: false);
+      } else {
+        _clearAdminState(notify: false);
+        await fetchCows(notify: false);
+      }
+
+      _useDemoData = false;
+      _connected = true;
+      _errorMessage = null;
     } catch (_) {
       _authToken = null;
       _currentUser = null;
@@ -274,8 +341,14 @@ class AppState extends ChangeNotifier {
     await _clearSavedToken();
   }
 
+  // ── Errors ────────────────────────────────────────────────────────────────
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  void clearAdminError() {
+    _adminErrorMessage = null;
     notifyListeners();
   }
 
@@ -286,6 +359,7 @@ class AppState extends ChangeNotifier {
     return 'Something went wrong. Please try again.';
   }
 
+  // ── Auth actions ──────────────────────────────────────────────────────────
   Future<bool> signup({
     required String email,
     required String password,
@@ -335,7 +409,14 @@ class AppState extends ChangeNotifier {
       _currentUser = result.user;
       await _saveToken(result.token);
 
-      await fetchCows(notify: false);
+      if (isAdmin) {
+        _clearNormalUiState();
+        await fetchAdminData(notify: false);
+        await fetchCows(notify: false);
+      } else {
+        _clearAdminState(notify: false);
+        await fetchCows(notify: false);
+      }
 
       _useDemoData = false;
       _connected = true;
@@ -358,6 +439,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Profile / admin fetches ───────────────────────────────────────────────
   Future<bool> fetchMe({bool notify = true}) async {
     if (_authToken == null || _authToken!.trim().isEmpty) {
       _errorMessage = 'No auth token found.';
@@ -386,6 +468,233 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<bool> fetchAdminData({bool notify = true}) async {
+    if (!isAdmin) return false;
+    if (_authToken == null || _authToken!.trim().isEmpty) return false;
+
+    _isAdminLoading = true;
+    _adminErrorMessage = null;
+    if (notify) notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _adminService.getOverview(token: _authToken!),
+        _adminService.listUsers(token: _authToken!),
+        _adminService.listCows(token: _authToken!),
+      ]);
+
+      _adminOverview = results[0] as AdminOverview;
+      _adminUsers = results[1] as List<ApiUser>;
+      _adminCows = results[2] as List<ApiCow>;
+
+      _useDemoData = false;
+      _connected = true;
+      _adminErrorMessage = null;
+      _isAdminLoading = false;
+
+      if (notify) notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _connected = false;
+      _isAdminLoading = false;
+
+      if (notify) notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminCreateUser({
+    required String email,
+    required String password,
+    required String fullName,
+    required String farmId,
+    required String role,
+    String? userId,
+  }) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.createUser(
+        token: _authToken!,
+        email: email,
+        password: password,
+        fullName: fullName,
+        farmId: farmId,
+        role: role,
+        userId: userId,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminUpdateUser({
+    required String userId,
+    required Map<String, dynamic> updates,
+  }) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.updateUser(
+        token: _authToken!,
+        userId: userId,
+        updates: updates,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminDeleteUser(String userId) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.deleteUser(
+        token: _authToken!,
+        userId: userId,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminCreateCow({
+    required String cowId,
+    required String farmId,
+    required String name,
+    required String tagNumber,
+    required String breed,
+    required int ageMonths,
+    required String deviceId,
+  }) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.createCow(
+        token: _authToken!,
+        cowId: cowId,
+        farmId: farmId,
+        name: name,
+        tagNumber: tagNumber,
+        breed: breed,
+        ageMonths: ageMonths,
+        deviceId: deviceId,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminUpdateCow({
+    required String cowId,
+    required Map<String, dynamic> updates,
+  }) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.updateCow(
+        token: _authToken!,
+        cowId: cowId,
+        updates: updates,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> adminDeleteCow(String cowId) async {
+    if (!isAdmin || _authToken == null) return false;
+
+    _isAdminMutating = true;
+    _adminErrorMessage = null;
+    notifyListeners();
+
+    try {
+      await _adminService.deleteCow(
+        token: _authToken!,
+        cowId: cowId,
+      );
+
+      await fetchAdminData(notify: false);
+
+      _isAdminMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _adminErrorMessage = _readableError(error);
+      _isAdminMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── Normal live herd fetches ──────────────────────────────────────────────
   Future<bool> fetchCows({bool notify = true}) async {
     if (_authToken == null || _authToken!.trim().isEmpty) {
       _errorMessage = 'No auth token found.';
@@ -535,10 +844,22 @@ class AppState extends ChangeNotifier {
     }
 
     final okMe = await fetchMe(notify: false);
-    final okCows = await fetchCows(notify: false);
+    if (!okMe) {
+      notifyListeners();
+      return false;
+    }
+
+    bool ok;
+    if (isAdmin) {
+      final okAdmin = await fetchAdminData(notify: false);
+      final okCows = await fetchCows(notify: false);
+      ok = okAdmin && okCows;
+    } else {
+      ok = await fetchCows(notify: false);
+    }
 
     notifyListeners();
-    return okMe && okCows;
+    return okMe && ok;
   }
 
   Future<void> resetDemo() async {
@@ -550,6 +871,7 @@ class AppState extends ChangeNotifier {
     _loadDemo();
   }
 
+  // ── Mapping / rebuild helpers ─────────────────────────────────────────────
   void _rebuildUiStateFromCaches() {
     final previousCowById = <String, Cow>{
       for (final cow in cows) cow.id: cow,
@@ -615,21 +937,14 @@ class AppState extends ChangeNotifier {
 
     final lastPrediction = predictions.isNotEmpty ? predictions.first : null;
 
-    final tempC = latest?.tempC ??
-        lastPrediction?.tempC ??
-        previous?.vitals.tempC;
-
-    final hrBpm = latest?.hrBpm ??
-        lastPrediction?.hrBpm ??
-        previous?.vitals.hrBpm;
-
-    final spO2 = latest?.spO2 ??
-        lastPrediction?.spO2 ??
-        previous?.vitals.spO2;
-
-    final activity = latest?.activity ??
-        lastPrediction?.activity ??
-        previous?.vitals.activity;
+    final tempC =
+        latest?.tempC ?? lastPrediction?.tempC ?? previous?.vitals.tempC;
+    final hrBpm =
+        latest?.hrBpm ?? lastPrediction?.hrBpm ?? previous?.vitals.hrBpm;
+    final spO2 =
+        latest?.spO2 ?? lastPrediction?.spO2 ?? previous?.vitals.spO2;
+    final activity =
+        latest?.activity ?? lastPrediction?.activity ?? previous?.vitals.activity;
 
     final vitalsHistory = _buildTempHistory(
       predictions,
@@ -759,7 +1074,9 @@ class AppState extends ChangeNotifier {
     if (v.contains('spo2') || v.contains('spo₂') || v.contains('oxygen')) {
       return 'Low SpO2';
     }
-    if (v.contains('fever') || v.contains('high temp') || v.contains('temperature')) {
+    if (v.contains('fever') ||
+        v.contains('high temp') ||
+        v.contains('temperature')) {
       return 'Fever';
     }
 

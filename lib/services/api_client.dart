@@ -19,7 +19,7 @@ class ApiClient {
 
   const ApiClient({
     required this.baseUrl,
-    this.timeout = const Duration(seconds: 15),
+    this.timeout = const Duration(seconds: 20),
   });
 
   String get normalizedBaseUrl {
@@ -78,6 +78,58 @@ class ApiClient {
             _buildUri(path),
             headers: _headers(token: token),
             body: jsonEncode(body ?? <String, dynamic>{}),
+          )
+          .timeout(timeout);
+
+      return _handleResponse(response);
+    } on TimeoutException {
+      throw const ApiException('Request timed out. Please try again.');
+    } on FormatException {
+      throw const ApiException('Invalid server response format.');
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException('Could not connect to the server.');
+    }
+  }
+
+  Future<dynamic> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    try {
+      final response = await http
+          .patch(
+            _buildUri(path),
+            headers: _headers(token: token),
+            body: jsonEncode(body ?? <String, dynamic>{}),
+          )
+          .timeout(timeout);
+
+      return _handleResponse(response);
+    } on TimeoutException {
+      throw const ApiException('Request timed out. Please try again.');
+    } on FormatException {
+      throw const ApiException('Invalid server response format.');
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException('Could not connect to the server.');
+    }
+  }
+
+  Future<dynamic> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    try {
+      final response = await http
+          .delete(
+            _buildUri(path),
+            headers: _headers(token: token),
+            body: body == null ? null : jsonEncode(body),
           )
           .timeout(timeout);
 
