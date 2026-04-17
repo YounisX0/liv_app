@@ -168,7 +168,7 @@ class AppLocalizations {
       'settings': 'Settings',
       'server_connection': 'Server connection',
       'server_desc':
-          'Enter your AWS API Gateway base URL for the LIV backend. Example: https://your-api-id.execute-api.eu-central-1.amazonaws.com',
+          'The backend URL is loaded from the .env file and is not editable inside the app.',
       'server_url': 'API Base URL',
       'connect': 'Save',
       'saved': 'Saved!',
@@ -342,7 +342,7 @@ class AppLocalizations {
       'settings': 'الإعدادات',
       'server_connection': 'اتصال الخادم',
       'server_desc':
-          'أدخل رابط AWS API Gateway الأساسي الخاص بخلفية LIV. مثال: https://your-api-id.execute-api.eu-central-1.amazonaws.com',
+          'يتم تحميل عنوان URL للخلفية من ملف .env ولا يمكن تعديله داخل التطبيق.',
       'server_url': 'رابط API الأساسي',
       'connect': 'حفظ',
       'saved': 'تم الحفظ!',

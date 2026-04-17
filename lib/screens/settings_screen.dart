@@ -1,42 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
 import '../l10n/app_localizations.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  late final TextEditingController _urlCtrl;
-  bool _saved = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final state = context.read<AppState>();
-    _urlCtrl = TextEditingController(text: state.serverUrl);
-  }
-
-  @override
-  void dispose() {
-    _urlCtrl.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    final state = context.read<AppState>();
-    state.setServerUrl(_urlCtrl.text.trim());
-    setState(() => _saved = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _saved = false);
-    });
-    FocusScope.of(context).unfocus();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,11 +15,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: LivTheme.bg,
-      appBar: AppBar(title: Text(l.t('settings')), backgroundColor: Colors.white),
+      appBar: AppBar(
+        title: Text(l.t('settings')),
+        backgroundColor: Colors.white,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ── Language ────────────────────────────────────────────────────
           _Section(title: l.t('language'), children: [
             Row(
               children: [
@@ -73,127 +45,137 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ]),
-
           const SizedBox(height: 16),
-
-          // ── Connection ──────────────────────────────────────────────────
           _Section(title: l.t('server_connection'), children: [
-            Text(
-              l.t('server_desc'),
-              style: const TextStyle(fontSize: 13, color: LivTheme.muted),
+            const Text(
+              'The backend URL is loaded from the .env file and is no longer editable inside the app.',
+              style: TextStyle(fontSize: 13, color: LivTheme.muted),
             ),
             const SizedBox(height: 14),
-            TextField(
-              controller: _urlCtrl,
-              keyboardType: TextInputType.url,
-              autocorrect: false,
-              decoration: InputDecoration(
-                labelText: l.t('server_url'),
-                hintText: 'https://your-api-id.execute-api.eu-central-1.amazonaws.com',
-                prefixIcon: const Icon(Icons.lan_outlined),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: LivTheme.line),
+              ),
+              child: SelectableText(
+                state.serverUrl.isEmpty ? 'Not configured' : state.serverUrl,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: state.serverUrl.isEmpty
+                      ? LivTheme.danger
+                      : LivTheme.text,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                icon: _saved
-                    ? const Icon(Icons.check, size: 18)
-                    : const Icon(Icons.save_outlined, size: 18),
-                label: Text(_saved ? l.t('saved') : l.t('connect')),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _saved ? LivTheme.ok : LivTheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            Row(
+              children: [
+                const Icon(Icons.lock_outline, size: 16, color: LivTheme.ok),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'To change the API URL, update the .env file and restart the app.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: LivTheme.muted,
+                    ),
+                  ),
                 ),
-                onPressed: _save,
-              ),
+              ],
             ),
           ]),
-
           const SizedBox(height: 16),
-
-          // ── Status ──────────────────────────────────────────────────────
           _Section(title: l.t('connection_status'), children: [
-            _StatusRow(
-              label: l.t('server'),
+            _InfoTile(
+              title: l.t('server'),
               value: state.hasServerUrl ? l.t('configured') : l.t('not_configured'),
-              color: state.hasServerUrl ? LivTheme.ok : LivTheme.danger,
+              valueColor: state.hasServerUrl ? LivTheme.ok : LivTheme.danger,
             ),
-            _StatusRow(
-              label: l.t('data_mode'),
+            _InfoTile(
+              title: l.t('connected'),
+              value: state.connected ? l.t('connected') : l.t('disconnected'),
+              valueColor: state.connected ? LivTheme.ok : LivTheme.danger,
+            ),
+            _InfoTile(
+              title: l.t('data_mode'),
               value: state.useDemoData ? l.t('demo_seed') : l.t('live'),
-              color: state.useDemoData ? LivTheme.gold : LivTheme.ok,
+              valueColor: state.useDemoData ? LivTheme.gold : LivTheme.ok,
             ),
-            _StatusRow(label: l.t('gateway_id'), value: state.gatewayId),
-            _StatusRow(label: l.t('udp_status'), value: state.udpStatus),
-            _StatusRow(label: l.t('mqtt_status'), value: state.mqttStatus),
           ]),
-
           const SizedBox(height: 16),
-
-          // ── Demo reset ──────────────────────────────────────────────────
           _Section(title: l.t('demo_data'), children: [
             Text(
               l.t('demo_reset_desc'),
               style: const TextStyle(fontSize: 13, color: LivTheme.muted),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: Text(l.t('reset_demo')),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: LivTheme.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(l.t('reset_demo')),
+                onPressed: () async {
+                  await context.read<AppState>().resetDemo();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l.t('demo_reset_ok'))),
+                    );
+                  }
+                },
               ),
-              onPressed: () async {
-                await state.resetDemo();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l.t('demo_reset_ok'))),
-                  );
-                }
-              },
             ),
           ]),
-
           const SizedBox(height: 16),
-
-          // ── About ───────────────────────────────────────────────────────
-          _Section(title: l.t('about'), children: [
-            _InfoRow(l.t('app_label'), 'LIV Smart Farm Dashboard'),
-            _InfoRow(l.t('version'), '1.0.0'),
-            _InfoRow(l.t('backend'), 'AWS API Gateway · Lambda · DynamoDB'),
-            _InfoRow(l.t('hardware'), 'ESP32 → Farm PC → AWS'),
-            const SizedBox(height: 8),
-            const Text(
-              'Current step:\n'
-              '  • Save AWS API base URL\n'
-              '  • Keep app in local demo mode\n'
-              '\n'
-              'Next step:\n'
-              '  • Connect auth and cows endpoints',
-              style: TextStyle(
-                fontSize: 11,
-                color: LivTheme.muted,
-                fontFamily: 'monospace',
-                height: 1.6,
-              ),
-            ),
+          _Section(title: l.t('about'), children: const [
+            _InfoTile(title: 'App', value: 'LIV Dashboard'),
+            _InfoTile(title: 'Version', value: '1.0.0'),
+            _InfoTile(title: 'Backend', value: 'AWS API Gateway + Lambda'),
+            _InfoTile(title: 'Hardware', value: 'ESP32 livestock collar'),
           ]),
-
-          const SizedBox(height: 40),
         ],
       ),
     );
   }
 }
 
-// ── Language option card ──────────────────────────────────────────────────────
+class _Section extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _Section({
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: LivTheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LangOption extends StatelessWidget {
   final String label;
   final String flag;
@@ -209,139 +191,74 @@ class _LangOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return Material(
+      color: selected ? LivTheme.primary : Colors.white,
       borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: selected ? LivTheme.primary.withOpacity(0.08) : Colors.transparent,
-          border: Border.all(
-            color: selected ? LivTheme.primary : LivTheme.line,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(flag, style: const TextStyle(fontSize: 26)),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                color: selected ? LivTheme.primary : LivTheme.text,
-              ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? LivTheme.primary
+                  : LivTheme.primary.withOpacity(0.20),
             ),
-            if (selected) ...[
-              const SizedBox(height: 4),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: LivTheme.primary,
-                  shape: BoxShape.circle,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(flag),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : LivTheme.primary,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Section extends StatelessWidget {
+class _InfoTile extends StatelessWidget {
   final String title;
-  final List<Widget> children;
-
-  const _Section({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: LivTheme.muted,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusRow extends StatelessWidget {
-  final String label;
   final String value;
-  final Color? color;
+  final Color? valueColor;
 
-  const _StatusRow({
-    required this.label,
+  const _InfoTile({
+    required this.title,
     required this.value,
-    this.color,
+    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: LivTheme.muted)),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                color: LivTheme.muted,
+              ),
+            ),
+          ),
           Text(
             value,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: color ?? LivTheme.text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(label, style: const TextStyle(fontSize: 12, color: LivTheme.muted)),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              color: valueColor ?? LivTheme.text,
             ),
           ),
         ],

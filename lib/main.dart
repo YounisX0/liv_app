@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +14,15 @@ import 'screens/settings_screen.dart';
 import 'services/app_state.dart';
 import 'theme/liv_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // App will still run, but backend URL may be empty if .env is missing.
+  }
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppState(),
@@ -234,9 +243,11 @@ class _AdminShellState extends State<AdminShell> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: LivTheme.primary.withOpacity(0.3)),
+                  border:
+                      Border.all(color: LivTheme.primary.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(20),
                   color: LivTheme.primary.withOpacity(0.06),
                 ),
@@ -441,9 +452,11 @@ class _AppShellState extends State<AppShell> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: LivTheme.primary.withOpacity(0.3)),
+                  border:
+                      Border.all(color: LivTheme.primary.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(20),
                   color: LivTheme.primary.withOpacity(0.06),
                 ),

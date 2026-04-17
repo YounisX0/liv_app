@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_env.dart';
 import '../l10n/app_localizations.dart';
 import '../models/admin_models.dart';
 import '../models/api_models.dart';
@@ -11,21 +12,16 @@ import 'auth_service.dart';
 import 'cows_service.dart';
 
 class AppState extends ChangeNotifier {
-  static const String _serverUrlKey = 'server_url';
   static const String _localeKey = 'locale';
   static const String _authTokenKey = 'auth_token';
 
-  static const String defaultApiBaseUrl =
-      'https://onw84kzqif.execute-api.eu-central-1.amazonaws.com';
-
   // ── Server connection ─────────────────────────────────────────────────────
-  String _serverUrl = defaultApiBaseUrl;
-  String get serverUrl => _serverUrl;
+  String get serverUrl => AppEnv.apiBaseUrl;
 
   bool _connected = false;
   bool get connected => _connected;
 
-  bool get hasServerUrl => _serverUrl.trim().isNotEmpty;
+  bool get hasServerUrl => AppEnv.hasApiBaseUrl;
 
   // ── Locale ────────────────────────────────────────────────────────────────
   AppLocale _locale = AppLocale.en;
@@ -128,26 +124,22 @@ class AppState extends ChangeNotifier {
     initialize();
   }
 
-  // ── Services ──────────────────────────────────────────────────────────────
-  ApiClient get _apiClient => ApiClient(baseUrl: _serverUrl);
+  ApiClient get _apiClient => ApiClient(baseUrl: serverUrl);
   AuthService get _authService => AuthService(_apiClient);
   CowsService get _cowsService => CowsService(_apiClient);
   AdminService get _adminService => AdminService(_apiClient);
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   Future<void> initialize() async {
     _isInitializing = true;
     _loadDemo(notify: false);
 
     await _loadLocale();
-    await _loadServerUrl();
     await _restoreSession();
 
     _isInitializing = false;
     notifyListeners();
   }
 
-  // ── Locale ────────────────────────────────────────────────────────────────
   void setLocale(AppLocale loc) {
     _locale = loc;
     _saveLocale(loc);
@@ -171,7 +163,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // ── Demo state ────────────────────────────────────────────────────────────
   void _loadDemo({bool notify = true}) {
     _clearCowCaches();
     _clearAdminState(notify: false);
@@ -238,47 +229,6 @@ class AppState extends ChangeNotifier {
     gyroHistory.clear();
   }
 
-  // ── Server config ─────────────────────────────────────────────────────────
-  Future<void> _loadServerUrl() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_serverUrlKey);
-
-      if (saved != null && saved.trim().isNotEmpty) {
-        _serverUrl = _normalizeUrl(saved);
-      } else {
-        _serverUrl = defaultApiBaseUrl;
-      }
-    } catch (_) {
-      _serverUrl = defaultApiBaseUrl;
-    }
-  }
-
-  Future<void> _saveServerUrl(String url) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_serverUrlKey, url);
-    } catch (_) {}
-  }
-
-  String _normalizeUrl(String url) {
-    final trimmed = url.trim();
-    return trimmed.endsWith('/')
-        ? trimmed.substring(0, trimmed.length - 1)
-        : trimmed;
-  }
-
-  void setServerUrl(String url) {
-    final normalized = _normalizeUrl(url);
-    _serverUrl = normalized.isEmpty ? defaultApiBaseUrl : normalized;
-    _saveServerUrl(_serverUrl);
-
-    _connected = false;
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  // ── Token/session persistence ─────────────────────────────────────────────
   Future<void> _saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -341,7 +291,6 @@ class AppState extends ChangeNotifier {
     await _clearSavedToken();
   }
 
-  // ── Errors ────────────────────────────────────────────────────────────────
   void clearError() {
     _errorMessage = null;
     notifyListeners();
@@ -359,7 +308,6 @@ class AppState extends ChangeNotifier {
     return 'Something went wrong. Please try again.';
   }
 
-  // ── Auth actions ──────────────────────────────────────────────────────────
   Future<bool> signup({
     required String email,
     required String password,
@@ -439,7 +387,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Profile / admin fetches ───────────────────────────────────────────────
   Future<bool> fetchMe({bool notify = true}) async {
     if (_authToken == null || _authToken!.trim().isEmpty) {
       _errorMessage = 'No auth token found.';
@@ -694,7 +641,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // ── Normal live herd fetches ──────────────────────────────────────────────
   Future<bool> fetchCows({bool notify = true}) async {
     if (_authToken == null || _authToken!.trim().isEmpty) {
       _errorMessage = 'No auth token found.';
@@ -871,7 +817,6 @@ class AppState extends ChangeNotifier {
     _loadDemo();
   }
 
-  // ── Mapping / rebuild helpers ─────────────────────────────────────────────
   void _rebuildUiStateFromCaches() {
     final previousCowById = <String, Cow>{
       for (final cow in cows) cow.id: cow,
@@ -888,7 +833,8 @@ class AppState extends ChangeNotifier {
       if (detail == null) continue;
 
       final latest = _latestStateByCowId[cowId];
-      final predictions = _predictionsByCowId[cowId] ?? const <ApiPredictionRecord>[];
+      final predictions =
+          _predictionsByCowId[cowId] ?? const <ApiPredictionRecord>[];
       final previousCow = previousCowById[cowId];
 
       final uiCow = _mapApiCowToUiCow(
