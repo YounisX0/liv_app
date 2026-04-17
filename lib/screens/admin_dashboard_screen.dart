@@ -5,6 +5,7 @@ import '../models/api_models.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
+import '../utils/app_validators.dart';
 import '../widgets/widgets.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -163,6 +164,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  void _showSuccess(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _showUserDialog(
     BuildContext context, {
     ApiUser? user,
@@ -170,15 +178,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final state = context.read<AppState>();
     final isEdit = user != null;
 
+    final formKey = GlobalKey<FormState>();
+
     final fullNameCtrl = TextEditingController(text: user?.fullName ?? '');
     final emailCtrl = TextEditingController(text: user?.email ?? '');
     final passwordCtrl = TextEditingController();
     final farmIdCtrl = TextEditingController(text: user?.farmId ?? 'farm1');
+
     String role = user?.role ?? 'farmer';
+    bool obscurePassword = true;
 
-    final formKey = GlobalKey<FormState>();
-
-    final ok = await showDialog<bool>(
+    final shouldSubmit = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -195,48 +205,68 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       children: [
                         TextFormField(
                           controller: fullNameCtrl,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Full name',
                           ),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          validator: AppValidators.fullName,
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Email',
                           ),
-                          validator: (v) {
-                            final value = (v ?? '').trim();
-                            if (value.isEmpty) return 'Required';
-                            if (!value.contains('@')) return 'Invalid email';
-                            return null;
-                          },
+                          validator: AppValidators.email,
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: passwordCtrl,
+                          obscureText: obscurePassword,
+                          textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
                             labelText: isEdit
                                 ? 'Password (leave empty to keep unchanged)'
                                 : 'Password',
+                            helperText: isEdit
+                                ? 'Only enter a new password if you want to change it.'
+                                : 'At least 8 characters with letters and numbers.',
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setLocalState(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
+                            ),
                           ),
-                          validator: (v) {
-                            if (!isEdit && (v == null || v.isEmpty)) {
-                              return 'Required';
+                          validator: (value) {
+                            if (!isEdit) {
+                              return AppValidators.strongPassword(value);
                             }
-                            return null;
+                            if ((value ?? '').trim().isEmpty) {
+                              return null;
+                            }
+                            return AppValidators.strongPassword(value);
                           },
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: farmIdCtrl,
+                          textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             labelText: 'Farm ID',
                           ),
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          validator: (value) => AppValidators.requiredField(
+                            value,
+                            fieldName: 'Farm ID',
+                          ),
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
@@ -263,6 +293,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               setLocalState(() => role = value);
                             }
                           },
+                          validator: (value) => AppValidators.requiredField(
+                            value,
+                            fieldName: 'Role',
+                          ),
                         ),
                       ],
                     ),
@@ -275,7 +309,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
+                  onPressed: () {
+                    final valid = formKey.currentState?.validate() ?? false;
+                    if (!valid) return;
+                    Navigator.pop(ctx, true);
+                  },
                   child: Text(isEdit ? 'Save' : 'Create'),
                 ),
               ],
@@ -285,17 +323,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       },
     );
 
-    if (ok != true) return;
-    if (!formKey.currentState!.validate()) return;
+    if (shouldSubmit != true) return;
 
     bool success;
     if (isEdit) {
       final updates = <String, dynamic>{
-        'fullName': fullNameCtrl.text.trim(),
+        'fullName': AppValidators.normalizeSpaces(fullNameCtrl.text),
         'email': emailCtrl.text.trim(),
         'farmId': farmIdCtrl.text.trim(),
         'role': role,
       };
+
       if (passwordCtrl.text.trim().isNotEmpty) {
         updates['password'] = passwordCtrl.text.trim();
       }
@@ -308,7 +346,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       success = await state.adminCreateUser(
         email: emailCtrl.text.trim(),
         password: passwordCtrl.text.trim(),
-        fullName: fullNameCtrl.text.trim(),
+        fullName: AppValidators.normalizeSpaces(fullNameCtrl.text),
         farmId: farmIdCtrl.text.trim(),
         role: role,
       );
@@ -316,7 +354,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (!mounted) return;
 
-    if (!success && state.adminErrorMessage != null) {
+    if (success) {
+      _showSuccess(
+        isEdit ? 'User updated successfully.' : 'User added successfully.',
+      );
+    } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
       );
@@ -330,6 +372,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final state = context.read<AppState>();
     final isEdit = cow != null;
 
+    final formKey = GlobalKey<FormState>();
+
     final cowIdCtrl = TextEditingController(text: cow?.cowId ?? '');
     final nameCtrl = TextEditingController(text: cow?.name ?? '');
     final tagNumberCtrl = TextEditingController(text: cow?.tagNumber ?? '');
@@ -339,9 +383,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final deviceIdCtrl = TextEditingController(text: cow?.deviceId ?? '');
     final farmIdCtrl = TextEditingController(text: cow?.farmId ?? 'farm1');
 
-    final formKey = GlobalKey<FormState>();
-
-    final ok = await showDialog<bool>(
+    final shouldSubmit = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
@@ -357,51 +399,87 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     TextFormField(
                       controller: cowIdCtrl,
                       readOnly: isEdit,
-                      decoration: const InputDecoration(labelText: 'Cow ID'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Cow ID',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Cow ID',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Name',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Name',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: tagNumberCtrl,
-                      decoration: const InputDecoration(labelText: 'Tag number'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Tag number',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Tag number',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: breedCtrl,
-                      decoration: const InputDecoration(labelText: 'Breed'),
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Breed',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Breed',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: ageMonthsCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Age in months'),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Required';
-                        if (int.tryParse(v.trim()) == null) return 'Must be a number';
-                        return null;
-                      },
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Age in months',
+                      ),
+                      validator: (value) => AppValidators.positiveInteger(
+                        value,
+                        fieldName: 'Age in months',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: deviceIdCtrl,
-                      decoration: const InputDecoration(labelText: 'Device ID'),
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Device ID',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Device ID',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: farmIdCtrl,
-                      decoration: const InputDecoration(labelText: 'Farm ID'),
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        labelText: 'Farm ID',
+                      ),
+                      validator: (value) => AppValidators.requiredField(
+                        value,
+                        fieldName: 'Farm ID',
+                      ),
                     ),
                   ],
                 ),
@@ -414,7 +492,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () {
+                final valid = formKey.currentState?.validate() ?? false;
+                if (!valid) return;
+                Navigator.pop(ctx, true);
+              },
               child: Text(isEdit ? 'Save' : 'Create'),
             ),
           ],
@@ -422,15 +504,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       },
     );
 
-    if (ok != true) return;
-    if (!formKey.currentState!.validate()) return;
+    if (shouldSubmit != true) return;
 
     bool success;
     if (isEdit) {
       success = await state.adminUpdateCow(
         cowId: cow.cowId,
         updates: {
-          'name': nameCtrl.text.trim(),
+          'name': AppValidators.normalizeSpaces(nameCtrl.text),
           'tagNumber': tagNumberCtrl.text.trim(),
           'breed': breedCtrl.text.trim(),
           'ageMonths': int.parse(ageMonthsCtrl.text.trim()),
@@ -442,7 +523,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       success = await state.adminCreateCow(
         cowId: cowIdCtrl.text.trim(),
         farmId: farmIdCtrl.text.trim(),
-        name: nameCtrl.text.trim(),
+        name: AppValidators.normalizeSpaces(nameCtrl.text),
         tagNumber: tagNumberCtrl.text.trim(),
         breed: breedCtrl.text.trim(),
         ageMonths: int.parse(ageMonthsCtrl.text.trim()),
@@ -452,7 +533,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (!mounted) return;
 
-    if (!success && state.adminErrorMessage != null) {
+    if (success) {
+      _showSuccess(
+        isEdit ? 'Cow updated successfully.' : 'Cow added successfully.',
+      );
+    } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
       );
@@ -487,7 +572,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final success = await state.adminDeleteUser(user.userId);
     if (!mounted) return;
 
-    if (!success && state.adminErrorMessage != null) {
+    if (success) {
+      _showSuccess('User deleted successfully.');
+    } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
       );
@@ -522,7 +609,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final success = await state.adminDeleteCow(cow.cowId);
     if (!mounted) return;
 
-    if (!success && state.adminErrorMessage != null) {
+    if (success) {
+      _showSuccess('Cow deleted successfully.');
+    } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
       );
