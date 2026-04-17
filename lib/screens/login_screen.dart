@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
+import '../utils/app_validators.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,62 +16,73 @@ class LoginScreen extends StatefulWidget {
 enum _AuthMode { login, signup }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _fullNameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
-  final TextEditingController _fullNameCtrl = TextEditingController();
+  final TextEditingController _confirmPasswordCtrl = TextEditingController();
 
-  final _formKey = GlobalKey<FormState>();
   _AuthMode _mode = _AuthMode.login;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   String _selectedRole = 'farmer';
 
   final List<Map<String, String>> _roles = const [
     {'value': 'farmer', 'label': 'Farmer'},
     {'value': 'veterinarian', 'label': 'Veterinarian'},
-    {'value': 'admin', 'label': 'Admin'},
   ];
 
   @override
   void dispose() {
+    _fullNameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
-    _fullNameCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     super.dispose();
   }
+
+  bool get _isLogin => _mode == _AuthMode.login;
 
   Future<void> _submit() async {
     final state = context.read<AppState>();
     state.clearError();
 
-    if (!_formKey.currentState!.validate()) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
 
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    final fullName = _fullNameCtrl.text.trim();
+    final fullName = AppValidators.normalizeSpaces(_fullNameCtrl.text);
 
-    if (_mode == _AuthMode.signup) {
-      final signedUp = await state.signup(
-        email: email,
-        password: password,
-        fullName: fullName,
-        role: _selectedRole,
-      );
-
-      if (!signedUp || !mounted) return;
-
-      final loggedIn = await state.login(
+    if (_isLogin) {
+      final success = await state.login(
         email: email,
         password: password,
       );
 
-      if (!loggedIn || !mounted) return;
+      if (!success && mounted && state.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.errorMessage!)),
+        );
+      }
+      return;
+    }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created and logged in successfully.'),
-        ),
-      );
+    final signedUp = await state.signup(
+      email: email,
+      password: password,
+      fullName: fullName,
+      role: _selectedRole,
+    );
+
+    if (!signedUp) {
+      if (mounted && state.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(state.errorMessage!)),
+        );
+      }
       return;
     }
 
@@ -79,13 +91,24 @@ class _LoginScreenState extends State<LoginScreen> {
       password: password,
     );
 
-    if (!loggedIn || !mounted) return;
+    if (!mounted) return;
+
+    if (loggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created and logged in successfully.'),
+        ),
+      );
+    } else if (state.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.errorMessage!)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    final isLogin = _mode == _AuthMode.login;
 
     return Scaffold(
       backgroundColor: LivTheme.bg,
@@ -156,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isLogin
+                          _isLogin
                               ? 'Sign in to access your farm dashboard.'
                               : 'Create a new account for the LIV dashboard.',
                           textAlign: TextAlign.center,
@@ -172,23 +195,31 @@ class _LoginScreenState extends State<LoginScreen> {
                             Expanded(
                               child: _ModeButton(
                                 label: 'Login',
-                                selected: isLogin,
-                                onTap: () => setState(() => _mode = _AuthMode.login),
+                                selected: _isLogin,
+                                onTap: () {
+                                  setState(() {
+                                    _mode = _AuthMode.login;
+                                  });
+                                },
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: _ModeButton(
                                 label: 'Sign up',
-                                selected: !isLogin,
-                                onTap: () => setState(() => _mode = _AuthMode.signup),
+                                selected: !_isLogin,
+                                onTap: () {
+                                  setState(() {
+                                    _mode = _AuthMode.signup;
+                                  });
+                                },
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 18),
 
-                        if (!isLogin) ...[
+                        if (!_isLogin) ...[
                           TextFormField(
                             controller: _fullNameCtrl,
                             textInputAction: TextInputAction.next,
@@ -201,13 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            validator: (value) {
-                              if (_mode == _AuthMode.signup &&
-                                  (value == null || value.trim().isEmpty)) {
-                                return 'Please enter your full name.';
-                              }
-                              return null;
-                            },
+                            validator: AppValidators.fullName,
                           ),
                           const SizedBox(height: 14),
 
@@ -215,7 +240,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             value: _selectedRole,
                             decoration: InputDecoration(
                               labelText: 'User type',
-                              prefixIcon: const Icon(Icons.admin_panel_settings_outlined),
+                              prefixIcon: const Icon(
+                                Icons.admin_panel_settings_outlined,
+                              ),
                               filled: true,
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
@@ -253,22 +280,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          validator: (value) {
-                            final v = (value ?? '').trim();
-                            if (v.isEmpty) return 'Please enter your email.';
-                            if (!v.contains('@')) return 'Please enter a valid email.';
-                            return null;
-                          },
+                          validator: AppValidators.email,
                         ),
                         const SizedBox(height: 14),
 
                         TextFormField(
                           controller: _passwordCtrl,
                           obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submit(),
+                          textInputAction:
+                              _isLogin ? TextInputAction.done : TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            if (_isLogin) _submit();
+                          },
                           decoration: InputDecoration(
                             labelText: 'Password',
+                            helperText: _isLogin
+                                ? null
+                                : 'At least 8 characters with letters and numbers.',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               onPressed: () {
@@ -288,15 +316,48 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          validator: (value) {
-                            final v = value ?? '';
-                            if (v.isEmpty) return 'Please enter your password.';
-                            if (_mode == _AuthMode.signup && v.length < 4) {
-                              return 'Password must be at least 4 characters.';
-                            }
-                            return null;
-                          },
+                          validator: _isLogin
+                              ? AppValidators.loginPassword
+                              : AppValidators.strongPassword,
                         ),
+
+                        if (!_isLogin) ...[
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _confirmPasswordCtrl,
+                            obscureText: _obscureConfirmPassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Confirm password',
+                              prefixIcon:
+                                  const Icon(Icons.verified_user_outlined),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            validator: (value) => AppValidators.confirmPassword(
+                              value,
+                              _passwordCtrl.text,
+                            ),
+                          ),
+                        ],
+
                         const SizedBox(height: 10),
 
                         if (state.errorMessage != null &&
@@ -335,14 +396,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : Icon(
-                                    isLogin
+                                    _isLogin
                                         ? Icons.login_rounded
                                         : Icons.person_add_alt_1_rounded,
                                   ),
                             label: Text(
                               state.isAuthenticating
-                                  ? (isLogin ? 'Signing in...' : 'Creating account...')
-                                  : (isLogin ? 'Login' : 'Create account'),
+                                  ? (_isLogin
+                                      ? 'Signing in...'
+                                      : 'Creating account...')
+                                  : (_isLogin ? 'Login' : 'Create account'),
                             ),
                             style: FilledButton.styleFrom(
                               backgroundColor: LivTheme.primary,
@@ -355,10 +418,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        Text(
-                          'Backend connected through saved app settings.',
+                        const Text(
+                          'Backend connection is managed from Settings.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LivTheme.muted,
                             fontSize: 12,
                           ),
