@@ -419,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 12),
 
                         const Text(
-                          'Backend connection is managed from Settings.',
+                          'Welcome back!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: LivTheme.muted,
