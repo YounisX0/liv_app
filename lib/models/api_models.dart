@@ -252,6 +252,82 @@ class ApiPredictionRecord {
   }
 }
 
+class ApiVetAction {
+  final String actionId;
+  final String cowId;
+  final String farmId;
+  final String cowName;
+  final String vetUserId;
+  final String vetRole;
+  final String message;
+  final String recommendedAction;
+  final String priority;
+  final String status;
+  final String createdAt;
+  final String acknowledgedAt;
+  final String acknowledgedBy;
+  final String acknowledgedByName;
+
+  const ApiVetAction({
+    required this.actionId,
+    required this.cowId,
+    required this.farmId,
+    required this.cowName,
+    required this.vetUserId,
+    required this.vetRole,
+    required this.message,
+    required this.recommendedAction,
+    required this.priority,
+    required this.status,
+    required this.createdAt,
+    required this.acknowledgedAt,
+    required this.acknowledgedBy,
+    required this.acknowledgedByName,
+  });
+
+  factory ApiVetAction.fromJson(Map<String, dynamic> json) {
+    return ApiVetAction(
+      actionId: (json['actionId'] ?? '').toString(),
+      cowId: (json['cowId'] ?? '').toString(),
+      farmId: (json['farmId'] ?? '').toString(),
+      cowName: (json['cowName'] ?? '').toString(),
+      vetUserId: (json['vetUserId'] ?? '').toString(),
+      vetRole: (json['vetRole'] ?? '').toString(),
+      message: (json['message'] ?? '').toString(),
+      recommendedAction: (json['recommendedAction'] ?? '').toString(),
+      priority: (json['priority'] ?? 'medium').toString(),
+      status: (json['status'] ?? 'sent').toString(),
+      createdAt: (json['createdAt'] ?? '').toString(),
+      acknowledgedAt: (json['acknowledgedAt'] ?? '').toString(),
+      acknowledgedBy: (json['acknowledgedBy'] ?? '').toString(),
+      acknowledgedByName: (json['acknowledgedByName'] ??
+              json['acknowledgedByFullName'] ??
+              '')
+          .toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'actionId': actionId,
+      'cowId': cowId,
+      'farmId': farmId,
+      'cowName': cowName,
+      'vetUserId': vetUserId,
+      'vetRole': vetRole,
+      'message': message,
+      'recommendedAction': recommendedAction,
+      'priority': priority,
+      'status': status,
+      'createdAt': createdAt,
+      'acknowledgedAt': acknowledgedAt,
+      'acknowledgedBy': acknowledgedBy,
+      'acknowledgedByName': acknowledgedByName,
+    };
+  }
+
+  bool get isAcknowledged => status.toLowerCase() == 'acknowledged';
+}
 class LoginResponse {
   final String token;
   final ApiUser user;

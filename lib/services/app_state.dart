@@ -55,6 +55,11 @@ class AppState extends ChangeNotifier {
 
   bool get isAdmin => (_currentUser?.role.toLowerCase() == 'admin');
 
+  bool get isVeterinarian =>
+      (_currentUser?.role.toLowerCase() == 'veterinarian');
+
+  bool get isFarmer => (_currentUser?.role.toLowerCase() == 'farmer');
+
   // ── Admin state ──────────────────────────────────────────────────────────
   AdminOverview? _adminOverview;
   AdminOverview? get adminOverview => _adminOverview;
@@ -79,8 +84,24 @@ class AppState extends ChangeNotifier {
   final Map<String, ApiCow> _cowDetailsById = {};
   final Map<String, ApiCowLatestState?> _latestStateByCowId = {};
   final Map<String, List<ApiPredictionRecord>> _predictionsByCowId = {};
+  final Map<String, List<ApiVetAction>> _vetActionsByCowId = {};
+
   final Set<String> _loadingCowIds = {};
+  final Set<String> _loadingVetActionCowIds = {};
+  final Set<String> _sendingVetActionCowIds = {};
+  final Set<String> _acknowledgingVetActionIds = {};
+
   final Map<String, String> _cowErrors = {};
+  final Map<String, String> _vetActionErrors = {};
+
+  bool _isVetCowMutating = false;
+  bool get isVetCowMutating => _isVetCowMutating;
+
+  String? _vetCowMutationError;
+  String? get vetCowMutationError => _vetCowMutationError;
+
+  String? _vetActionMutationError;
+  String? get vetActionMutationError => _vetActionMutationError;
 
   ApiCow? cowDetailsCache(String cowId) => _cowDetailsById[cowId];
 
@@ -90,9 +111,23 @@ class AppState extends ChangeNotifier {
   List<ApiPredictionRecord> cowPredictionsCache(String cowId) =>
       List.unmodifiable(_predictionsByCowId[cowId] ?? const []);
 
+  List<ApiVetAction> cowVetActionsCache(String cowId) =>
+      List.unmodifiable(_vetActionsByCowId[cowId] ?? const <ApiVetAction>[]);
+
   bool isCowDataLoading(String cowId) => _loadingCowIds.contains(cowId);
 
+  bool isCowVetActionsLoading(String cowId) =>
+      _loadingVetActionCowIds.contains(cowId);
+
+  bool isSendingVetAction(String cowId) =>
+      _sendingVetActionCowIds.contains(cowId);
+
+  bool isAcknowledgingVetAction(String actionId) =>
+      _acknowledgingVetActionIds.contains(actionId);
+
   String? cowDataError(String cowId) => _cowErrors[cowId];
+
+  String? cowVetActionsError(String cowId) => _vetActionErrors[cowId];
 
   // ── UI-facing state used by the current screens ──────────────────────────
   List<Cow> cows = [];
@@ -186,8 +221,19 @@ class AppState extends ChangeNotifier {
     _cowDetailsById.clear();
     _latestStateByCowId.clear();
     _predictionsByCowId.clear();
+    _vetActionsByCowId.clear();
+
     _loadingCowIds.clear();
+    _loadingVetActionCowIds.clear();
+    _sendingVetActionCowIds.clear();
+    _acknowledgingVetActionIds.clear();
+
     _cowErrors.clear();
+    _vetActionErrors.clear();
+
+    _isVetCowMutating = false;
+    _vetCowMutationError = null;
+    _vetActionMutationError = null;
   }
 
   void _clearAdminState({bool notify = true}) {
@@ -298,6 +344,16 @@ class AppState extends ChangeNotifier {
 
   void clearAdminError() {
     _adminErrorMessage = null;
+    notifyListeners();
+  }
+
+  void clearVetCowMutationError() {
+    _vetCowMutationError = null;
+    notifyListeners();
+  }
+
+  void clearVetActionMutationError() {
+    _vetActionMutationError = null;
     notifyListeners();
   }
 
@@ -668,10 +724,22 @@ class AppState extends ChangeNotifier {
       _predictionsByCowId.removeWhere(
         (cowId, _) => !_cowDetailsById.containsKey(cowId),
       );
+      _vetActionsByCowId.removeWhere(
+        (cowId, _) => !_cowDetailsById.containsKey(cowId),
+      );
       _cowErrors.removeWhere(
         (cowId, _) => !_cowDetailsById.containsKey(cowId),
       );
+      _vetActionErrors.removeWhere(
+        (cowId, _) => !_cowDetailsById.containsKey(cowId),
+      );
       _loadingCowIds.removeWhere(
+        (cowId) => !_cowDetailsById.containsKey(cowId),
+      );
+      _loadingVetActionCowIds.removeWhere(
+        (cowId) => !_cowDetailsById.containsKey(cowId),
+      );
+      _sendingVetActionCowIds.removeWhere(
         (cowId) => !_cowDetailsById.containsKey(cowId),
       );
 
@@ -782,6 +850,220 @@ class AppState extends ChangeNotifier {
 
   Future<bool> refreshCowData(String cowId) {
     return loadCowProfileData(cowId, force: true);
+  }
+
+  void _upsertVetActionInCowCache(String cowId, ApiVetAction action) {
+    final current = List<ApiVetAction>.from(
+      _vetActionsByCowId[cowId] ?? const <ApiVetAction>[],
+    );
+
+    final index = current.indexWhere((item) => item.actionId == action.actionId);
+    if (index >= 0) {
+      current[index] = action;
+    } else {
+      current.insert(0, action);
+    }
+
+    current.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _vetActionsByCowId[cowId] = current;
+  }
+
+  void _replaceVetActionInAllCaches(ApiVetAction action) {
+    for (final cowId in _vetActionsByCowId.keys.toList()) {
+      final current = List<ApiVetAction>.from(_vetActionsByCowId[cowId]!);
+      final index = current.indexWhere((item) => item.actionId == action.actionId);
+      if (index >= 0) {
+        current[index] = action;
+        current.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _vetActionsByCowId[cowId] = current;
+      }
+    }
+  }
+
+  Future<bool> loadCowVetActions(
+    String cowId, {
+    bool force = false,
+  }) async {
+    if (_authToken == null || _authToken!.trim().isEmpty) {
+      return false;
+    }
+
+    if (!force && _vetActionsByCowId.containsKey(cowId)) {
+      return true;
+    }
+
+    if (_loadingVetActionCowIds.contains(cowId)) {
+      return false;
+    }
+
+    _loadingVetActionCowIds.add(cowId);
+    _vetActionErrors.remove(cowId);
+    notifyListeners();
+
+    try {
+      final actions = await _cowsService.getCowVetActions(
+        token: _authToken!,
+        cowId: cowId,
+      );
+
+      _vetActionsByCowId[cowId] = actions;
+      _loadingVetActionCowIds.remove(cowId);
+      _vetActionErrors.remove(cowId);
+      _connected = true;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _loadingVetActionCowIds.remove(cowId);
+      _vetActionErrors[cowId] = _readableError(error);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> addCowByVet({
+    required String cowId,
+    required String name,
+    required String tagNumber,
+    required String breed,
+    required int ageMonths,
+    required String deviceId,
+  }) async {
+    if (!(isVeterinarian || isAdmin) || _authToken == null) {
+      return false;
+    }
+
+    _isVetCowMutating = true;
+    _vetCowMutationError = null;
+    notifyListeners();
+
+    try {
+      await _cowsService.createCow(
+        token: _authToken!,
+        cowId: cowId,
+        name: name,
+        tagNumber: tagNumber,
+        breed: breed,
+        ageMonths: ageMonths,
+        deviceId: deviceId,
+      );
+
+      await fetchCows(notify: false);
+
+      _isVetCowMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _vetCowMutationError = _readableError(error);
+      _isVetCowMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateCowByVet({
+    required String cowId,
+    required Map<String, dynamic> updates,
+  }) async {
+    if (!(isVeterinarian || isAdmin) || _authToken == null) {
+      return false;
+    }
+
+    _isVetCowMutating = true;
+    _vetCowMutationError = null;
+    notifyListeners();
+
+    try {
+      final updated = await _cowsService.updateCow(
+        token: _authToken!,
+        cowId: cowId,
+        updates: updates,
+      );
+
+      _cowDetailsById[cowId] = updated;
+      if (!_cowOrder.contains(cowId)) {
+        _cowOrder.add(cowId);
+      }
+
+      await fetchCows(notify: false);
+      await loadCowProfileData(cowId, force: true);
+
+      _isVetCowMutating = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _vetCowMutationError = _readableError(error);
+      _isVetCowMutating = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> sendVetAction({
+    required String cowId,
+    required String message,
+    required String recommendedAction,
+    required String priority,
+  }) async {
+    if (!(isVeterinarian || isAdmin) || _authToken == null) {
+      return false;
+    }
+
+    _sendingVetActionCowIds.add(cowId);
+    _vetActionMutationError = null;
+    notifyListeners();
+
+    try {
+      final action = await _cowsService.createVetAction(
+        token: _authToken!,
+        cowId: cowId,
+        message: message,
+        recommendedAction: recommendedAction,
+        priority: priority,
+      );
+
+      _upsertVetActionInCowCache(cowId, action);
+
+      _sendingVetActionCowIds.remove(cowId);
+      _vetActionErrors.remove(cowId);
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _sendingVetActionCowIds.remove(cowId);
+      _vetActionMutationError = _readableError(error);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> acknowledgeVetAction({
+    required String cowId,
+    required String actionId,
+  }) async {
+    if (!(isFarmer || isAdmin) || _authToken == null) {
+      return false;
+    }
+
+    _acknowledgingVetActionIds.add(actionId);
+    _vetActionMutationError = null;
+    notifyListeners();
+
+    try {
+      final updated = await _cowsService.acknowledgeVetAction(
+        token: _authToken!,
+        actionId: actionId,
+      );
+
+      _replaceVetActionInAllCaches(updated);
+      _acknowledgingVetActionIds.remove(actionId);
+      _vetActionErrors.remove(cowId);
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _acknowledgingVetActionIds.remove(actionId);
+      _vetActionMutationError = _readableError(error);
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> refreshLiveData() async {

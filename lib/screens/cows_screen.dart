@@ -17,6 +17,21 @@ class CowsScreen extends StatefulWidget {
 
 class _CowsScreenState extends State<CowsScreen> {
   String _query = '';
+  final Set<String> _prefetchedActionCowIds = <String>{};
+
+  void _scheduleVetActionPrefetch(List<Cow> cows) {
+    final state = context.read<AppState>();
+
+    for (final cow in cows) {
+      if (_prefetchedActionCowIds.contains(cow.id)) continue;
+      _prefetchedActionCowIds.add(cow.id);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        state.loadCowVetActions(cow.id);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,34 +47,317 @@ class _CowsScreenState extends State<CowsScreen> {
           c.healthStatus.toLowerCase().contains(q);
     }).toList();
 
-    return Column(
+    _scheduleVetActionPrefetch(filtered);
+
+    final canAddCow = state.isVeterinarian || state.isAdmin;
+
+    return Stack(
       children: [
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: l.t('search_hint'),
-              prefixIcon: const Icon(Icons.search, color: LivTheme.muted),
-              filled: true,
-              fillColor: LivTheme.bg,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+        Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: l.t('search_hint'),
+                  prefixIcon: const Icon(Icons.search, color: LivTheme.muted),
+                  filled: true,
+                  fillColor: LivTheme.bg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+                onChanged: (v) => setState(() => _query = v),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
-            onChanged: (v) => setState(() => _query = v),
-          ),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  canAddCow ? 96 : 16,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (ctx, i) {
+                  final cow = filtered[i];
+                  final pendingCount = state
+                      .cowVetActionsCache(cow.id)
+                      .where((a) => !a.isAcknowledged)
+                      .length;
+
+                  return _CowCard(
+                    cow: cow,
+                    l: l,
+                    pendingCount: pendingCount,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: filtered.length,
-            itemBuilder: (ctx, i) => _CowCard(cow: filtered[i], l: l),
+        if (canAddCow)
+          PositionedDirectional(
+            end: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              heroTag: 'add_cow_fab',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddCowScreen(),
+                  ),
+                );
+              },
+              backgroundColor: LivTheme.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Cow'),
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+class AddCowScreen extends StatefulWidget {
+  const AddCowScreen({super.key});
+
+  @override
+  State<AddCowScreen> createState() => _AddCowScreenState();
+}
+
+class _AddCowScreenState extends State<AddCowScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _cowIdCtrl;
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _tagCtrl;
+  late final TextEditingController _breedCtrl;
+  late final TextEditingController _ageMonthsCtrl;
+  late final TextEditingController _deviceCtrl;
+
+  bool _submitting = false;
+  String? _localError;
+
+  @override
+  void initState() {
+    super.initState();
+    _cowIdCtrl = TextEditingController();
+    _nameCtrl = TextEditingController();
+    _tagCtrl = TextEditingController();
+    _breedCtrl = TextEditingController();
+    _ageMonthsCtrl = TextEditingController();
+    _deviceCtrl = TextEditingController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AppState>().clearVetCowMutationError();
+    });
+  }
+
+  @override
+  void dispose() {
+    _cowIdCtrl.dispose();
+    _nameCtrl.dispose();
+    _tagCtrl.dispose();
+    _breedCtrl.dispose();
+    _ageMonthsCtrl.dispose();
+    _deviceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_submitting) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      _submitting = true;
+      _localError = null;
+    });
+
+    final app = context.read<AppState>();
+
+    final ok = await app.addCowByVet(
+      cowId: _cowIdCtrl.text.trim(),
+      name: _nameCtrl.text.trim(),
+      tagNumber: _tagCtrl.text.trim(),
+      breed: _breedCtrl.text.trim(),
+      ageMonths: int.tryParse(_ageMonthsCtrl.text.trim()) ?? 0,
+      deviceId: _deviceCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cow added successfully.'),
+        ),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+
+    setState(() {
+      _submitting = false;
+      _localError =
+          app.vetCowMutationError ?? 'Failed to add cow. Please try again.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = context.watch<AppState>();
+
+    return Scaffold(
+      backgroundColor: LivTheme.bg,
+      appBar: AppBar(
+        title: const Text('Add Cow'),
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: _cowIdCtrl,
+                      enabled: !_submitting,
+                      decoration: const InputDecoration(
+                        labelText: 'Cow ID',
+                        hintText: 'COW-909',
+                      ),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) {
+                          return 'Cow ID is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      enabled: !_submitting,
+                      decoration: const InputDecoration(
+                        labelText: 'Name',
+                      ),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) {
+                          return 'Name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _tagCtrl,
+                      enabled: !_submitting,
+                      decoration: const InputDecoration(
+                        labelText: 'Tag Number',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _breedCtrl,
+                      enabled: !_submitting,
+                      decoration: const InputDecoration(
+                        labelText: 'Breed',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _ageMonthsCtrl,
+                      enabled: !_submitting,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Age (months)',
+                      ),
+                      validator: (value) {
+                        final parsed = int.tryParse((value ?? '').trim());
+                        if (parsed == null || parsed < 0) {
+                          return 'Enter a valid age in months';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _deviceCtrl,
+                      enabled: !_submitting,
+                      decoration: const InputDecoration(
+                        labelText: 'Device ID',
+                      ),
+                    ),
+                    if (((_localError ?? app.vetCowMutationError) ?? '')
+                        .trim()
+                        .isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            (_localError ?? app.vetCowMutationError)!,
+                            style: const TextStyle(
+                              color: LivTheme.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _submitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: _submitting ? null : _submit,
+                            child: _submitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Add'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -67,7 +365,13 @@ class _CowsScreenState extends State<CowsScreen> {
 class _CowCard extends StatelessWidget {
   final Cow cow;
   final AppLocalizations l;
-  const _CowCard({required this.cow, required this.l});
+  final int pendingCount;
+
+  const _CowCard({
+    required this.cow,
+    required this.l,
+    required this.pendingCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +407,21 @@ class _CowCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          cow.name,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              cow.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (pendingCount > 0)
+                              _PendingCountBadge(count: pendingCount),
+                          ],
                         ),
                         Text(
                           '${cow.breed} · ${cow.id}',
@@ -187,6 +503,32 @@ class _CowCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PendingCountBadge extends StatelessWidget {
+  final int count;
+  const _PendingCountBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: LivTheme.danger,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$count',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
         ),
       ),
     );
