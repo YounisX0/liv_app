@@ -37,3 +37,4 @@ flutter:
   generate: false
   assets:
     - .env
+    - assets/images/LIVLogo.png

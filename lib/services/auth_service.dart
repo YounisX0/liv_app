@@ -64,4 +64,32 @@ class AuthService {
 
     return ApiUser.fromJson(data);
   }
+
+  Future<ApiUser> updateMe({
+    required String token,
+    required String fullName,
+    required String email,
+    String? password,
+  }) async {
+    final body = <String, dynamic>{
+      'fullName': fullName,
+      'email': email,
+    };
+
+    if (password != null && password.trim().isNotEmpty) {
+      body['password'] = password.trim();
+    }
+
+    final data = await apiClient.patch(
+      '/me',
+      token: token,
+      body: body,
+    );
+
+    if (data is! Map<String, dynamic>) {
+      throw const ApiException('Invalid profile update response.');
+    }
+
+    return ApiUser.fromJson(data);
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/breeding_sires.dart';
+import '../l10n/app_localizations.dart';
 import '../models/breeding_models.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
@@ -182,7 +183,8 @@ class _BreedingScreenState extends State<BreedingScreen> {
       failures = inseminationCount;
     }
 
-    if (cow.fertility.inbreedingRisk.toLowerCase() == 'high' && failures < inseminationCount) {
+    if (cow.fertility.inbreedingRisk.toLowerCase() == 'high' &&
+        failures < inseminationCount) {
       failures += 1;
     }
 
@@ -318,44 +320,48 @@ class _BreedingScreenState extends State<BreedingScreen> {
     });
   }
 
-  String _goalLabel(String goal) {
+  String _goalLabel(String goal, AppLocalizations l) {
     switch (goal) {
       case 'fertility':
-        return 'Improve fertility';
+        return l.t('goal_improve_fertility');
       case 'safer_calving':
-        return 'Safer calving';
+        return l.t('goal_safer_calving');
       case 'health':
-        return 'Better daughter health';
+        return l.t('goal_better_daughter_health');
       case 'udder':
-        return 'Udder traits';
+        return l.t('goal_udder_traits');
       case 'inbreeding':
-        return 'Avoid inbreeding';
+        return l.t('goal_avoid_inbreeding');
       default:
-        return 'Balanced';
+        return l.t('goal_balanced');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final cows = state.cows;
     final selectedCow = _selectedCow(cows);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? LivTheme.darkMuted : LivTheme.muted;
+    final textColor = isDark ? LivTheme.darkText : LivTheme.text;
+    final pageBg = isDark ? LivTheme.darkBg : LivTheme.bg;
 
     return Scaffold(
-      backgroundColor: LivTheme.bg,
+      backgroundColor: pageBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('Breeding Recommender'),
+        title: Text(l.t('breeding_recommender')),
       ),
       body: cows.isEmpty
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No cows available yet. Add or sync cows first to generate breeding recommendations.',
+                  l.t('breeding_no_cows'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: LivTheme.muted,
+                    color: muted,
                     fontSize: 14,
                   ),
                 ),
@@ -364,31 +370,30 @@ class _BreedingScreenState extends State<BreedingScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'Breeding Recommender',
+                Text(
+                  l.t('breeding_recommender'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: LivTheme.primary,
+                    color: isDark ? LivTheme.darkText : LivTheme.primary,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Generate sire recommendations using the richer web-style rule engine, now inside the mobile app.',
+                Text(
+                  l.t('breeding_recommender_subtitle'),
                   style: TextStyle(
                     fontSize: 13,
-                    color: LivTheme.muted,
+                    color: muted,
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 _SectionCard(
-                  title: '1. Select cow',
+                  title: l.t('breeding_step_select_cow'),
                   child: DropdownButtonFormField<String>(
                     value: _selectedCowId,
-                    decoration: const InputDecoration(
-                      labelText: 'Cow',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.t('cow'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: cows
                         .map(
@@ -408,16 +413,12 @@ class _BreedingScreenState extends State<BreedingScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 if (selectedCow != null)
-                  _SelectedCowSnapshot(cow: selectedCow),
-
+                  _SelectedCowSnapshot(cow: selectedCow, l: l),
                 const SizedBox(height: 12),
-
                 _SectionCard(
-                  title: '2. Breeding inputs',
+                  title: l.t('breeding_step_inputs'),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -427,13 +428,13 @@ class _BreedingScreenState extends State<BreedingScreen> {
                             Expanded(
                               child: TextFormField(
                                 controller: _breedCtrl,
-                                decoration: const InputDecoration(
-                                  labelText: 'Breed',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('breed'),
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   if ((value ?? '').trim().isEmpty) {
-                                    return 'Breed is required';
+                                    return l.t('breed_required');
                                   }
                                   return null;
                                 },
@@ -444,14 +445,14 @@ class _BreedingScreenState extends State<BreedingScreen> {
                               child: TextFormField(
                                 controller: _parityCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Parity',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('parity'),
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   final parsed = int.tryParse((value ?? '').trim());
                                   if (parsed == null || parsed < 0) {
-                                    return 'Enter a valid parity';
+                                    return l.t('breeding_valid_parity');
                                   }
                                   return null;
                                 },
@@ -460,24 +461,23 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         Row(
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
                                 value: _heiferOrCow,
-                                decoration: const InputDecoration(
-                                  labelText: 'Animal type',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('animal_type'),
+                                  border: const OutlineInputBorder(),
                                 ),
-                                items: const [
+                                items: [
                                   DropdownMenuItem(
                                     value: 'heifer',
-                                    child: Text('Heifer'),
+                                    child: Text(l.t('heifer')),
                                   ),
                                   DropdownMenuItem(
                                     value: 'cow',
-                                    child: Text('Cow'),
+                                    child: Text(l.t('cow')),
                                   ),
                                 ],
                                 onChanged: (value) {
@@ -490,18 +490,18 @@ class _BreedingScreenState extends State<BreedingScreen> {
                             Expanded(
                               child: DropdownButtonFormField<String>(
                                 value: _pregnancyStatus,
-                                decoration: const InputDecoration(
-                                  labelText: 'Pregnancy status',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('pregnancy_status'),
+                                  border: const OutlineInputBorder(),
                                 ),
-                                items: const [
+                                items: [
                                   DropdownMenuItem(
                                     value: 'open',
-                                    child: Text('Open'),
+                                    child: Text(l.t('open')),
                                   ),
                                   DropdownMenuItem(
                                     value: 'pregnant',
-                                    child: Text('Pregnant'),
+                                    child: Text(l.t('pregnant')),
                                   ),
                                 ],
                                 onChanged: (value) {
@@ -513,21 +513,20 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         Row(
                           children: [
                             Expanded(
                               child: TextFormField(
                                 controller: _daysPostpartumCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Days postpartum',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('days_postpartum'),
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   final parsed = int.tryParse((value ?? '').trim());
                                   if (parsed == null || parsed < 0) {
-                                    return 'Enter a valid value';
+                                    return l.t('breeding_enter_valid_value');
                                   }
                                   return null;
                                 },
@@ -537,22 +536,22 @@ class _BreedingScreenState extends State<BreedingScreen> {
                             Expanded(
                               child: DropdownButtonFormField<String>(
                                 value: _healthStatus,
-                                decoration: const InputDecoration(
-                                  labelText: 'Health status',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('health_status'),
+                                  border: const OutlineInputBorder(),
                                 ),
-                                items: const [
+                                items: [
                                   DropdownMenuItem(
                                     value: 'stable',
-                                    child: Text('Stable'),
+                                    child: Text(l.t('stable')),
                                   ),
                                   DropdownMenuItem(
                                     value: 'monitoring',
-                                    child: Text('Monitoring'),
+                                    child: Text(l.t('monitoring')),
                                   ),
                                   DropdownMenuItem(
                                     value: 'sick',
-                                    child: Text('Sick'),
+                                    child: Text(l.t('sick')),
                                   ),
                                 ],
                                 onChanged: (value) {
@@ -564,21 +563,20 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         Row(
                           children: [
                             Expanded(
                               child: TextFormField(
                                 controller: _inseminationCountCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Insemination count',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('insemination_count'),
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   final parsed = int.tryParse((value ?? '').trim());
                                   if (parsed == null || parsed < 0) {
-                                    return 'Enter a valid count';
+                                    return l.t('breeding_enter_valid_count');
                                   }
                                   return null;
                                 },
@@ -589,14 +587,14 @@ class _BreedingScreenState extends State<BreedingScreen> {
                               child: TextFormField(
                                 controller: _conceptionFailuresCtrl,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Conception failures',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: l.t('conception_failures'),
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   final parsed = int.tryParse((value ?? '').trim());
                                   if (parsed == null || parsed < 0) {
-                                    return 'Enter a valid count';
+                                    return l.t('breeding_enter_valid_count');
                                   }
                                   return null;
                                 },
@@ -605,37 +603,36 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         DropdownButtonFormField<String>(
                           value: _breedingGoal,
-                          decoration: const InputDecoration(
-                            labelText: 'Breeding goal',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l.t('breeding_goal'),
+                            border: const OutlineInputBorder(),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 'balanced',
-                              child: Text('Balanced'),
+                              child: Text(l.t('goal_balanced')),
                             ),
                             DropdownMenuItem(
                               value: 'fertility',
-                              child: Text('Improve fertility'),
+                              child: Text(l.t('goal_improve_fertility')),
                             ),
                             DropdownMenuItem(
                               value: 'safer_calving',
-                              child: Text('Safer calving'),
+                              child: Text(l.t('goal_safer_calving')),
                             ),
                             DropdownMenuItem(
                               value: 'health',
-                              child: Text('Better daughter health'),
+                              child: Text(l.t('goal_better_daughter_health')),
                             ),
                             DropdownMenuItem(
                               value: 'udder',
-                              child: Text('Udder traits'),
+                              child: Text(l.t('goal_udder_traits')),
                             ),
                             DropdownMenuItem(
                               value: 'inbreeding',
-                              child: Text('Avoid inbreeding'),
+                              child: Text(l.t('goal_avoid_inbreeding')),
                             ),
                           ],
                           onChanged: (value) {
@@ -644,44 +641,39 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-
-                        const Align(
+                        Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Clinical / risk flags',
+                            l.t('clinical_risk_flags'),
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: LivTheme.primary,
+                              color: isDark ? LivTheme.darkText : LivTheme.primary,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
-
                         SwitchListTile(
                           value: _feverFlag,
                           onChanged: (value) => setState(() => _feverFlag = value),
-                          title: const Text('Fever flag'),
+                          title: Text(l.t('fever_flag')),
                           contentPadding: EdgeInsets.zero,
                         ),
                         SwitchListTile(
                           value: _lamenessFlag,
-                          onChanged: (value) =>
-                              setState(() => _lamenessFlag = value),
-                          title: const Text('Lameness flag'),
+                          onChanged: (value) => setState(() => _lamenessFlag = value),
+                          title: Text(l.t('lameness_flag')),
                           contentPadding: EdgeInsets.zero,
                         ),
                         SwitchListTile(
                           value: _mastitisHistory,
-                          onChanged: (value) =>
-                              setState(() => _mastitisHistory = value),
-                          title: const Text('Mastitis history'),
+                          onChanged: (value) => setState(() => _mastitisHistory = value),
+                          title: Text(l.t('mastitis_history')),
                           contentPadding: EdgeInsets.zero,
                         ),
                         SwitchListTile(
                           value: _medicationOngoing,
-                          onChanged: (value) =>
-                              setState(() => _medicationOngoing = value),
-                          title: const Text('Medication ongoing'),
+                          onChanged: (value) => setState(() => _medicationOngoing = value),
+                          title: Text(l.t('medication_ongoing')),
                           contentPadding: EdgeInsets.zero,
                         ),
                         SwitchListTile(
@@ -689,37 +681,35 @@ class _BreedingScreenState extends State<BreedingScreen> {
                           onChanged: (value) => setState(
                             () => _previousCalvingDifficulty = value,
                           ),
-                          title: const Text('Previous calving difficulty'),
+                          title: Text(l.t('previous_calving_difficulty')),
                           contentPadding: EdgeInsets.zero,
                         ),
-
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
                             onPressed: () => _generateRecommendation(cows),
                             icon: const Icon(Icons.auto_awesome),
-                            label: const Text('Generate recommendation'),
+                            label: Text(l.t('generate_recommendation')),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 12),
-
                 if (_result != null) ...[
-                  _EligibilityCard(result: _result!),
+                  _EligibilityCard(result: _result!, l: l),
                   const SizedBox(height: 12),
-                  _RiskFlagsCard(result: _result!),
+                  _RiskFlagsCard(result: _result!, l: l),
                   const SizedBox(height: 12),
                   _FinalChoiceCard(
                     result: _result!,
-                    goalLabel: _goalLabel(_result!.goal),
+                    goalLabel: _goalLabel(_result!.goal, l),
+                    l: l,
                   ),
                   const SizedBox(height: 12),
-                  _TopCandidatesCard(result: _result!),
+                  _TopCandidatesCard(result: _result!, l: l),
                 ],
               ],
             ),
@@ -738,10 +728,14 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? LivTheme.darkLine : LivTheme.line;
+    final titleColor = isDark ? LivTheme.darkText : LivTheme.primary;
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: LivTheme.line),
+        side: BorderSide(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
@@ -751,10 +745,10 @@ class _SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: LivTheme.primary,
+                color: titleColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -768,9 +762,11 @@ class _SectionCard extends StatelessWidget {
 
 class _SelectedCowSnapshot extends StatelessWidget {
   final Cow cow;
+  final AppLocalizations l;
 
   const _SelectedCowSnapshot({
     required this.cow,
+    required this.l,
   });
 
   String _statusColorLabel(String status) {
@@ -781,10 +777,18 @@ class _SelectedCowSnapshot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? LivTheme.darkLine : LivTheme.line;
+    final titleColor = isDark ? LivTheme.darkText : LivTheme.primary;
+    final chipBg = isDark ? LivTheme.darkCardSoft : Colors.white;
+    final chipBorder = isDark ? LivTheme.darkLine : LivTheme.line;
+    final chipLabel = isDark ? LivTheme.darkMuted : LivTheme.muted;
+    final chipValue = isDark ? LivTheme.darkText : LivTheme.text;
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: LivTheme.line),
+        side: BorderSide(color: borderColor),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
@@ -792,12 +796,12 @@ class _SelectedCowSnapshot extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Cow snapshot',
+            Text(
+              l.t('cow_snapshot'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: LivTheme.primary,
+                color: titleColor,
               ),
             ),
             const SizedBox(height: 10),
@@ -805,26 +809,70 @@ class _SelectedCowSnapshot extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
-                _MiniInfoChip(label: 'Cow', value: cow.name),
-                _MiniInfoChip(label: 'ID', value: cow.id),
-                _MiniInfoChip(label: 'Breed', value: cow.breed),
-                _MiniInfoChip(label: 'Parity', value: '${cow.parity}'),
                 _MiniInfoChip(
-                  label: 'Health',
-                  value: _statusColorLabel(cow.healthStatus),
+                  label: l.t('cow'),
+                  value: cow.name,
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
                 ),
                 _MiniInfoChip(
-                  label: 'Conception',
+                  label: l.t('id'),
+                  value: cow.id,
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
+                ),
+                _MiniInfoChip(
+                  label: l.t('breed'),
+                  value: cow.breed,
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
+                ),
+                _MiniInfoChip(
+                  label: l.t('parity'),
+                  value: '${cow.parity}',
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
+                ),
+                _MiniInfoChip(
+                  label: l.t('health'),
+                  value: _statusColorLabel(cow.healthStatus),
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
+                ),
+                _MiniInfoChip(
+                  label: l.t('conception'),
                   value:
                       '${(cow.fertility.conceptionRate * 100).toStringAsFixed(0)}%',
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
                 ),
                 _MiniInfoChip(
                   label: 'BCS',
                   value: cow.fertility.bodyConditionScore.toStringAsFixed(1),
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
                 ),
                 _MiniInfoChip(
-                  label: 'Inbreeding',
+                  label: l.t('inbreeding'),
                   value: cow.fertility.inbreedingRisk,
+                  bg: chipBg,
+                  border: chipBorder,
+                  labelColor: chipLabel,
+                  valueColor: chipValue,
                 ),
               ],
             ),
@@ -838,10 +886,18 @@ class _SelectedCowSnapshot extends StatelessWidget {
 class _MiniInfoChip extends StatelessWidget {
   final String label;
   final String value;
+  final Color bg;
+  final Color border;
+  final Color labelColor;
+  final Color valueColor;
 
   const _MiniInfoChip({
     required this.label,
     required this.value,
+    required this.bg,
+    required this.border,
+    required this.labelColor,
+    required this.valueColor,
   });
 
   @override
@@ -850,26 +906,26 @@ class _MiniInfoChip extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LivTheme.line),
+        border: Border.all(color: border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: LivTheme.muted,
+              color: labelColor,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w700,
-              color: LivTheme.text,
+              color: valueColor,
             ),
           ),
         ],
@@ -880,15 +936,20 @@ class _MiniInfoChip extends StatelessWidget {
 
 class _EligibilityCard extends StatelessWidget {
   final BreedingRecommendationResult result;
+  final AppLocalizations l;
 
   const _EligibilityCard({
     required this.result,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
     final ok = result.eligibleNow;
     final color = ok ? LivTheme.ok : LivTheme.danger;
+    final textColor = Theme.of(context).brightness == Brightness.dark
+        ? LivTheme.darkText
+        : LivTheme.text;
 
     return Card(
       color: color.withOpacity(0.08),
@@ -912,7 +973,7 @@ class _EligibilityCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    ok ? 'Eligible now' : 'Not eligible now',
+                    ok ? l.t('eligible_now') : l.t('not_eligible_now'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -922,8 +983,8 @@ class _EligibilityCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     result.eligibilityReason,
-                    style: const TextStyle(
-                      color: LivTheme.text,
+                    style: TextStyle(
+                      color: textColor,
                     ),
                   ),
                 ],
@@ -938,19 +999,26 @@ class _EligibilityCard extends StatelessWidget {
 
 class _RiskFlagsCard extends StatelessWidget {
   final BreedingRecommendationResult result;
+  final AppLocalizations l;
 
   const _RiskFlagsCard({
     required this.result,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final boxBg = isDark ? LivTheme.darkCardSoft : Colors.white;
+    final boxBorder = isDark ? LivTheme.darkLine : LivTheme.line;
+    final textColor = isDark ? LivTheme.darkText : LivTheme.text;
+
     return _SectionCard(
-      title: 'Risk flags',
+      title: l.t('risk_flags'),
       child: result.riskFlags.isEmpty
-          ? const Text(
-              'No major risk flags detected from the provided inputs.',
-              style: TextStyle(color: LivTheme.muted),
+          ? Text(
+              l.t('no_major_risk_flags'),
+              style: TextStyle(color: isDark ? LivTheme.darkMuted : LivTheme.muted),
             )
           : Column(
               children: result.riskFlags
@@ -960,9 +1028,9 @@ class _RiskFlagsCard extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: boxBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: LivTheme.line),
+                        border: Border.all(color: boxBorder),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,8 +1044,8 @@ class _RiskFlagsCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               flag,
-                              style: const TextStyle(
-                                color: LivTheme.text,
+                              style: TextStyle(
+                                color: textColor,
                               ),
                             ),
                           ),
@@ -994,22 +1062,27 @@ class _RiskFlagsCard extends StatelessWidget {
 class _FinalChoiceCard extends StatelessWidget {
   final BreedingRecommendationResult result;
   final String goalLabel;
+  final AppLocalizations l;
 
   const _FinalChoiceCard({
     required this.result,
     required this.goalLabel,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
     final choice = result.finalChoice;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? LivTheme.darkMuted : LivTheme.muted;
+    final textColor = isDark ? LivTheme.darkText : LivTheme.text;
 
     return _SectionCard(
-      title: 'Final recommendation',
+      title: l.t('final_recommendation'),
       child: choice == null
-          ? const Text(
-              'No final sire was selected from the current candidate pool.',
-              style: TextStyle(color: LivTheme.muted),
+          ? Text(
+              l.t('no_final_sire_selected'),
+              style: TextStyle(color: muted),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,9 +1101,9 @@ class _FinalChoiceCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Best sire match',
-                        style: TextStyle(
+                      Text(
+                        l.t('best_sire_match'),
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
                         ),
@@ -1046,7 +1119,7 @@ class _FinalChoiceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Match score: ${choice.matchScore.toStringAsFixed(1)} / 100',
+                        '${l.t('match_score')}: ${choice.matchScore.toStringAsFixed(1)} / 100',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -1054,7 +1127,7 @@ class _FinalChoiceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Goal: $goalLabel',
+                        '${l.t('goal')}: $goalLabel',
                         style: const TextStyle(color: Colors.white),
                       ),
                     ],
@@ -1063,8 +1136,8 @@ class _FinalChoiceCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   result.finalSummary,
-                  style: const TextStyle(
-                    color: LivTheme.text,
+                  style: TextStyle(
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1073,37 +1146,61 @@ class _FinalChoiceCard extends StatelessWidget {
                   runSpacing: 10,
                   children: [
                     _MiniInfoChip(
-                      label: 'Fertility index',
+                      label: l.t('fertility_index'),
                       value: choice.metrics.fertilityIndex.toStringAsFixed(1),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                     _MiniInfoChip(
                       label: 'DPR',
                       value: choice.metrics.daughterPregnancyRate.toStringAsFixed(1),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                     _MiniInfoChip(
-                      label: 'Calving ease',
+                      label: l.t('calving_ease'),
                       value: choice.metrics.sireCalvingEase.toStringAsFixed(1),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                     _MiniInfoChip(
-                      label: 'Stillbirth',
+                      label: l.t('stillbirth'),
                       value: choice.metrics.sireStillbirth.toStringAsFixed(1),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                     _MiniInfoChip(
                       label: 'SCS',
                       value: choice.metrics.somaticCellScore.toStringAsFixed(2),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                     _MiniInfoChip(
-                      label: 'Livability',
+                      label: l.t('livability'),
                       value: choice.metrics.livability.toStringAsFixed(1),
+                      bg: isDark ? LivTheme.darkCardSoft : Colors.white,
+                      border: isDark ? LivTheme.darkLine : LivTheme.line,
+                      labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                      valueColor: textColor,
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Why this sire?',
+                Text(
+                  l.t('why_this_sire'),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    color: LivTheme.primary,
+                    color: isDark ? LivTheme.darkText : LivTheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1132,19 +1229,26 @@ class _FinalChoiceCard extends StatelessWidget {
 
 class _TopCandidatesCard extends StatelessWidget {
   final BreedingRecommendationResult result;
+  final AppLocalizations l;
 
   const _TopCandidatesCard({
     required this.result,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final boxBg = isDark ? LivTheme.darkCardSoft : Colors.white;
+    final boxBorder = isDark ? LivTheme.darkLine : LivTheme.line;
+    final primaryText = isDark ? LivTheme.darkText : LivTheme.primary;
+
     return _SectionCard(
-      title: 'Top candidates',
+      title: l.t('top_candidates'),
       child: result.topCandidates.isEmpty
-          ? const Text(
-              'No candidates available.',
-              style: TextStyle(color: LivTheme.muted),
+          ? Text(
+              l.t('no_candidates_available'),
+              style: TextStyle(color: isDark ? LivTheme.darkMuted : LivTheme.muted),
             )
           : Column(
               children: result.topCandidates.asMap().entries.map((entry) {
@@ -1156,9 +1260,9 @@ class _TopCandidatesCard extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: boxBg,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: LivTheme.line),
+                    border: Border.all(color: boxBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1180,10 +1284,10 @@ class _TopCandidatesCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '${candidate.name} (${candidate.shortCode})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,
-                                color: LivTheme.primary,
+                                color: primaryText,
                               ),
                             ),
                           ),
@@ -1204,26 +1308,50 @@ class _TopCandidatesCard extends StatelessWidget {
                           _MiniInfoChip(
                             label: 'FI',
                             value: candidate.metrics.fertilityIndex.toStringAsFixed(1),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                           _MiniInfoChip(
                             label: 'CCR',
                             value: candidate.metrics.cowConceptionRate.toStringAsFixed(1),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                           _MiniInfoChip(
                             label: 'HCR',
                             value: candidate.metrics.heiferConceptionRate.toStringAsFixed(1),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                           _MiniInfoChip(
                             label: 'SCE',
                             value: candidate.metrics.sireCalvingEase.toStringAsFixed(1),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                           _MiniInfoChip(
                             label: 'PL',
                             value: candidate.metrics.productiveLife.toStringAsFixed(1),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                           _MiniInfoChip(
-                            label: 'Udder',
+                            label: l.t('udder'),
                             value: candidate.metrics.udderComposite.toStringAsFixed(2),
+                            bg: isDark ? LivTheme.darkBg : Colors.white,
+                            border: isDark ? LivTheme.darkLine : LivTheme.line,
+                            labelColor: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                            valueColor: isDark ? LivTheme.darkText : LivTheme.text,
                           ),
                         ],
                       ),

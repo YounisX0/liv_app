@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_env.dart';
@@ -14,6 +14,7 @@ import 'cows_service.dart';
 class AppState extends ChangeNotifier {
   static const String _localeKey = 'locale';
   static const String _authTokenKey = 'auth_token';
+  static const String _themeModeKey = 'theme_mode';
 
   // ── Server connection ─────────────────────────────────────────────────────
   String get serverUrl => AppEnv.apiBaseUrl;
@@ -26,6 +27,11 @@ class AppState extends ChangeNotifier {
   // ── Locale ────────────────────────────────────────────────────────────────
   AppLocale _locale = AppLocale.en;
   AppLocale get locale => _locale;
+
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode get themeMode => _themeMode;
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   // ── Auth / backend state ─────────────────────────────────────────────────
   bool _isInitializing = true;
@@ -47,6 +53,12 @@ class AppState extends ChangeNotifier {
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
+
+  bool _isUpdatingProfile = false;
+  bool get isUpdatingProfile => _isUpdatingProfile;
+
+  String? _profileUpdateError;
+  String? get profileUpdateError => _profileUpdateError;
 
   bool get isAuthenticated =>
       _authToken != null &&
@@ -169,6 +181,7 @@ class AppState extends ChangeNotifier {
     _loadDemo(notify: false);
 
     await _loadLocale();
+    await _loadThemeMode();
     await _restoreSession();
 
     _isInitializing = false;
@@ -196,6 +209,32 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       _locale = AppLocale.en;
     }
+  }
+
+  Future<void> _loadThemeMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_themeModeKey);
+      _themeMode = raw == 'dark' ? ThemeMode.dark : ThemeMode.light;
+    } catch (_) {
+      _themeMode = ThemeMode.light;
+    }
+  }
+
+  Future<void> _saveThemeMode(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _themeModeKey,
+        mode == ThemeMode.dark ? 'dark' : 'light',
+      );
+    } catch (_) {}
+  }
+
+  void setDarkMode(bool isDark) {
+    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    _saveThemeMode(_themeMode);
+    notifyListeners();
   }
 
   void _loadDemo({bool notify = true}) {
@@ -322,6 +361,7 @@ class AppState extends ChangeNotifier {
       _useDemoData = false;
       _connected = true;
       _errorMessage = null;
+      _profileUpdateError = null;
     } catch (_) {
       _authToken = null;
       _currentUser = null;
@@ -334,6 +374,8 @@ class AppState extends ChangeNotifier {
     _currentUser = null;
     _connected = false;
     _errorMessage = null;
+    _profileUpdateError = null;
+    _isUpdatingProfile = false;
     await _clearSavedToken();
   }
 
@@ -354,6 +396,11 @@ class AppState extends ChangeNotifier {
 
   void clearVetActionMutationError() {
     _vetActionMutationError = null;
+    notifyListeners();
+  }
+
+  void clearProfileUpdateError() {
+    _profileUpdateError = null;
     notifyListeners();
   }
 
@@ -425,6 +472,7 @@ class AppState extends ChangeNotifier {
       _useDemoData = false;
       _connected = true;
       _errorMessage = null;
+      _profileUpdateError = null;
 
       _isAuthenticating = false;
       notifyListeners();
@@ -467,6 +515,44 @@ class AppState extends ChangeNotifier {
       if (notify) {
         notifyListeners();
       }
+      return false;
+    }
+  }
+
+  Future<bool> updateMyAccount({
+    required String fullName,
+    required String email,
+    String? password,
+  }) async {
+    if (_authToken == null || _authToken!.trim().isEmpty || _currentUser == null) {
+      return false;
+    }
+
+    _isUpdatingProfile = true;
+    _profileUpdateError = null;
+    notifyListeners();
+
+    try {
+      final updatedUser = await _authService.updateMe(
+        token: _authToken!,
+        fullName: fullName,
+        email: email,
+        password: password,
+      );
+
+      _currentUser = updatedUser;
+
+      if (isAdmin) {
+        await fetchAdminData(notify: false);
+      }
+
+      _isUpdatingProfile = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _profileUpdateError = _readableError(error);
+      _isUpdatingProfile = false;
+      notifyListeners();
       return false;
     }
   }
@@ -857,7 +943,8 @@ class AppState extends ChangeNotifier {
       _vetActionsByCowId[cowId] ?? const <ApiVetAction>[],
     );
 
-    final index = current.indexWhere((item) => item.actionId == action.actionId);
+    final index =
+        current.indexWhere((item) => item.actionId == action.actionId);
     if (index >= 0) {
       current[index] = action;
     } else {
@@ -871,7 +958,8 @@ class AppState extends ChangeNotifier {
   void _replaceVetActionInAllCaches(ApiVetAction action) {
     for (final cowId in _vetActionsByCowId.keys.toList()) {
       final current = List<ApiVetAction>.from(_vetActionsByCowId[cowId]!);
-      final index = current.indexWhere((item) => item.actionId == action.actionId);
+      final index =
+          current.indexWhere((item) => item.actionId == action.actionId);
       if (index >= 0) {
         current[index] = action;
         current.sort((a, b) => b.createdAt.compareTo(a.createdAt));

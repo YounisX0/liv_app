@@ -1,144 +1,296 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/app_state.dart';
 import '../theme/liv_theme.dart';
-import '../l10n/app_localizations.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _fullNameCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _passwordCtrl;
+  late final TextEditingController _confirmPasswordCtrl;
+
+  String? _loadedUserId;
+  String? _localError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullNameCtrl = TextEditingController();
+    _emailCtrl = TextEditingController();
+    _passwordCtrl = TextEditingController();
+    _confirmPasswordCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _fullNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _syncFromUser(AppState state) {
+    final user = state.currentUser;
+    if (user == null) return;
+    if (_loadedUserId == user.userId) return;
+
+    _loadedUserId = user.userId;
+    _fullNameCtrl.text = user.fullName;
+    _emailCtrl.text = user.email;
+  }
+
+  Future<void> _saveAccount() async {
+    final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
+
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _localError = null;
+    });
+
+    final password = _passwordCtrl.text.trim();
+    final ok = await state.updateMyAccount(
+      fullName: _fullNameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      password: password.isEmpty ? null : password,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      _passwordCtrl.clear();
+      _confirmPasswordCtrl.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.t('account_updated_ok'))),
+      );
+      return;
+    }
+
+    setState(() {
+      _localError = state.profileUpdateError ?? l.t('account_update_failed');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final l = AppLocalizations(state.locale);
+    final isDark = state.isDarkMode;
+    final user = state.currentUser;
+    _syncFromUser(state);
 
     return Scaffold(
-      backgroundColor: LivTheme.bg,
       appBar: AppBar(
         title: Text(l.t('settings')),
-        backgroundColor: Colors.white,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _Section(title: l.t('language'), children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _LangOption(
-                    label: 'English',
-                    flag: '🇬🇧',
-                    selected: state.locale == AppLocale.en,
-                    onTap: () => state.setLocale(AppLocale.en),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _LangOption(
-                    label: 'العربية',
-                    flag: '🇸🇦',
-                    selected: state.locale == AppLocale.ar,
-                    onTap: () => state.setLocale(AppLocale.ar),
-                  ),
-                ),
-              ],
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _Section(title: l.t('server_connection'), children: [
-            const Text(
-              'The backend URL is loaded from the .env file and is no longer editable inside the app.',
-              style: TextStyle(fontSize: 13, color: LivTheme.muted),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: LivTheme.line),
-              ),
-              child: SelectableText(
-                state.serverUrl.isEmpty ? 'Not configured' : state.serverUrl,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: state.serverUrl.isEmpty
-                      ? LivTheme.danger
-                      : LivTheme.text,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.lock_outline, size: 16, color: LivTheme.ok),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'To change the API URL, update the .env file and restart the app.',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: LivTheme.muted,
+          _Section(
+            title: l.t('language'),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _ChoiceCard(
+                      label: 'English',
+                      subtitle: 'EN',
+                      leading: '🇬🇧',
+                      selected: state.locale == AppLocale.en,
+                      onTap: () => state.setLocale(AppLocale.en),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _Section(title: l.t('connection_status'), children: [
-            _InfoTile(
-              title: l.t('server'),
-              value: state.hasServerUrl ? l.t('configured') : l.t('not_configured'),
-              valueColor: state.hasServerUrl ? LivTheme.ok : LivTheme.danger,
-            ),
-            _InfoTile(
-              title: l.t('connected'),
-              value: state.connected ? l.t('connected') : l.t('disconnected'),
-              valueColor: state.connected ? LivTheme.ok : LivTheme.danger,
-            ),
-            _InfoTile(
-              title: l.t('data_mode'),
-              value: state.useDemoData ? l.t('demo_seed') : l.t('live'),
-              valueColor: state.useDemoData ? LivTheme.gold : LivTheme.ok,
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _Section(title: l.t('demo_data'), children: [
-            Text(
-              l.t('demo_reset_desc'),
-              style: const TextStyle(fontSize: 13, color: LivTheme.muted),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text(l.t('reset_demo')),
-                onPressed: () async {
-                  await context.read<AppState>().resetDemo();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l.t('demo_reset_ok'))),
-                    );
-                  }
-                },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _ChoiceCard(
+                      label: 'العربية',
+                      subtitle: 'AR',
+                      leading: '🇸🇦',
+                      selected: state.locale == AppLocale.ar,
+                      onTap: () => state.setLocale(AppLocale.ar),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ]),
+            ],
+          ),
           const SizedBox(height: 16),
-          _Section(title: l.t('about'), children: const [
-            _InfoTile(title: 'App', value: 'LIV Dashboard'),
-            _InfoTile(title: 'Version', value: '1.0.0'),
-            _InfoTile(title: 'Backend', value: 'AWS API Gateway + Lambda'),
-            _InfoTile(title: 'Hardware', value: 'ESP32 livestock collar'),
-          ]),
+          _Section(
+            title: l.t('appearance'),
+            children: [
+              SwitchListTile.adaptive(
+                value: isDark,
+                onChanged: (value) {
+                  state.setDarkMode(value);
+                },
+                title: Text(l.t('dark_mode')),
+                subtitle: Text(
+                  isDark ? l.t('dark_mode_desc_on') : l.t('dark_mode_desc_off'),
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _Section(
+            title: l.t('my_account'),
+            children: [
+              if (user != null) ...[
+                _InfoRow(
+                  label: l.t('role'),
+                  value: _roleLabel(l, user.role),
+                ),
+                const SizedBox(height: 6),
+                _InfoRow(
+                  label: l.t('farm'),
+                  value: user.farmId,
+                ),
+                const SizedBox(height: 14),
+              ],
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _fullNameCtrl,
+                      decoration: InputDecoration(
+                        labelText: l.t('full_name'),
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                      ),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) {
+                          return l.t('full_name_required');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: l.t('email'),
+                        prefixIcon: const Icon(Icons.email_outlined),
+                      ),
+                      validator: (value) {
+                        final email = (value ?? '').trim();
+                        if (email.isEmpty) {
+                          return l.t('email_required');
+                        }
+                        final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+                        if (!ok) {
+                          return l.t('email_invalid');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: l.t('new_password_optional'),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                      ),
+                      validator: (value) {
+                        final text = (value ?? '').trim();
+                        if (text.isEmpty) return null;
+                        if (text.length < 8) {
+                          return l.t('password_min_8');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _confirmPasswordCtrl,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: l.t('confirm_new_password'),
+                        prefixIcon: const Icon(Icons.verified_user_outlined),
+                      ),
+                      validator: (value) {
+                        if (_passwordCtrl.text.trim().isEmpty &&
+                            (value ?? '').trim().isEmpty) {
+                          return null;
+                        }
+                        if ((value ?? '').trim() != _passwordCtrl.text.trim()) {
+                          return l.t('passwords_do_not_match');
+                        }
+                        return null;
+                      },
+                    ),
+                    if (((_localError ?? state.profileUpdateError) ?? '')
+                        .trim()
+                        .isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          (_localError ?? state.profileUpdateError)!,
+                          style: const TextStyle(
+                            color: LivTheme.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: state.isUpdatingProfile ? null : _saveAccount,
+                        icon: state.isUpdatingProfile
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined),
+                        label: Text(
+                          state.isUpdatingProfile
+                              ? l.t('saving')
+                              : l.t('save_changes'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  String _roleLabel(AppLocalizations l, String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return l.t('role_admin');
+      case 'veterinarian':
+        return l.t('role_veterinarian');
+      default:
+        return l.t('role_farmer');
+    }
   }
 }
 
@@ -176,15 +328,17 @@ class _Section extends StatelessWidget {
   }
 }
 
-class _LangOption extends StatelessWidget {
+class _ChoiceCard extends StatelessWidget {
   final String label;
-  final String flag;
+  final String subtitle;
+  final String leading;
   final bool selected;
   final VoidCallback onTap;
 
-  const _LangOption({
+  const _ChoiceCard({
     required this.label,
-    required this.flag,
+    required this.subtitle,
+    required this.leading,
     required this.selected,
     required this.onTap,
   });
@@ -192,31 +346,41 @@ class _LangOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? LivTheme.primary : Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      color: selected ? LivTheme.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected
                   ? LivTheme.primary
                   : LivTheme.primary.withOpacity(0.20),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: [
-              Text(flag),
-              const SizedBox(width: 8),
+              Text(
+                leading,
+                style: const TextStyle(fontSize: 24),
+              ),
+              const SizedBox(height: 8),
               Text(
                 label,
                 style: TextStyle(
                   color: selected ? Colors.white : LivTheme.primary,
                   fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: selected ? Colors.white70 : LivTheme.muted,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -227,42 +391,37 @@ class _LangOption extends StatelessWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  final String title;
+class _InfoRow extends StatelessWidget {
+  final String label;
   final String value;
-  final Color? valueColor;
 
-  const _InfoTile({
-    required this.title,
+  const _InfoRow({
+    required this.label,
     required this.value,
-    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                color: LivTheme.muted,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? LivTheme.text,
+              color: LivTheme.muted,
             ),
           ),
-        ],
-      ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: LivTheme.text,
+          ),
+        ),
+      ],
     );
   }
 }

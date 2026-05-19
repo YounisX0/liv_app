@@ -29,11 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _selectedRole = 'farmer';
 
-  final List<Map<String, String>> _roles = const [
-    {'value': 'farmer', 'label': 'Farmer'},
-    {'value': 'veterinarian', 'label': 'Veterinarian'},
-  ];
-
   @override
   void dispose() {
     _fullNameCtrl.dispose();
@@ -47,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
     state.clearError();
 
     final isValid = _formKey.currentState?.validate() ?? false;
@@ -95,8 +91,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (loggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created and logged in successfully.'),
+        SnackBar(
+          content: Text(l.t('account_created_login_ok')),
         ),
       );
     } else if (state.errorMessage != null) {
@@ -109,9 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: LivTheme.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -137,41 +134,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             icon: const Text('🌐'),
                             label: Text(
-                              state.locale == AppLocale.en
-                                  ? 'العربية'
-                                  : 'English',
+                              state.locale == AppLocale.en ? 'العربية' : 'English',
                             ),
                           ),
                         ),
-                        Center(
-                          child: Container(
-                            width: 68,
-                            height: 68,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [LivTheme.primary, LivTheme.accent],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'L',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ),
+                        const Center(
+                          child: _BrandLogo(size: 250),
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'LIV Smart Farm',
+                        const SizedBox(height: 18),
+                        Text(
+                          l.t('brand_title'),
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                             color: LivTheme.primary,
@@ -179,22 +153,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _isLogin
-                              ? 'Sign in to access your farm dashboard.'
-                              : 'Create a new account for the LIV dashboard.',
+                          _isLogin ? l.t('login_subtitle') : l.t('signup_subtitle'),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: LivTheme.muted,
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : LivTheme.muted,
                             fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 22),
-
                         Row(
                           children: [
                             Expanded(
                               child: _ModeButton(
-                                label: 'Login',
+                                label: l.t('login'),
                                 selected: _isLogin,
                                 onTap: () {
                                   setState(() {
@@ -206,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _ModeButton(
-                                label: 'Sign up',
+                                label: l.t('sign_up'),
                                 selected: !_isLogin,
                                 onTap: () {
                                   setState(() {
@@ -218,45 +189,35 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-
                         if (!_isLogin) ...[
                           TextFormField(
                             controller: _fullNameCtrl,
                             textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
-                              labelText: 'Full name',
+                              labelText: l.t('full_name'),
                               prefixIcon: const Icon(Icons.badge_outlined),
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             ),
                             validator: AppValidators.fullName,
                           ),
                           const SizedBox(height: 14),
-
                           DropdownButtonFormField<String>(
                             value: _selectedRole,
                             decoration: InputDecoration(
-                              labelText: 'User type',
+                              labelText: l.t('user_type'),
                               prefixIcon: const Icon(
                                 Icons.admin_panel_settings_outlined,
                               ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             ),
-                            items: _roles
-                                .map(
-                                  (role) => DropdownMenuItem<String>(
-                                    value: role['value'],
-                                    child: Text(role['label']!),
-                                  ),
-                                )
-                                .toList(),
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: 'farmer',
+                                child: Text(l.t('role_farmer')),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'veterinarian',
+                                child: Text(l.t('role_veterinarian')),
+                              ),
+                            ],
                             onChanged: (value) {
                               if (value != null) {
                                 setState(() => _selectedRole = value);
@@ -265,25 +226,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 14),
                         ],
-
                         TextFormField(
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                           autocorrect: false,
                           decoration: InputDecoration(
-                            labelText: 'Email',
+                            labelText: l.t('email'),
                             prefixIcon: const Icon(Icons.email_outlined),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
                           ),
                           validator: AppValidators.email,
                         ),
                         const SizedBox(height: 14),
-
                         TextFormField(
                           controller: _passwordCtrl,
                           obscureText: _obscurePassword,
@@ -293,10 +247,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (_isLogin) _submit();
                           },
                           decoration: InputDecoration(
-                            labelText: 'Password',
-                            helperText: _isLogin
-                                ? null
-                                : 'At least 8 characters with letters and numbers.',
+                            labelText: l.t('password'),
+                            helperText: _isLogin ? null : l.t('password_hint'),
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               onPressed: () {
@@ -310,17 +262,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : Icons.visibility_outlined,
                               ),
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
                           ),
                           validator: _isLogin
                               ? AppValidators.loginPassword
                               : AppValidators.strongPassword,
                         ),
-
                         if (!_isLogin) ...[
                           const SizedBox(height: 14),
                           TextFormField(
@@ -329,9 +275,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(),
                             decoration: InputDecoration(
-                              labelText: 'Confirm password',
-                              prefixIcon:
-                                  const Icon(Icons.verified_user_outlined),
+                              labelText: l.t('confirm_password'),
+                              prefixIcon: const Icon(Icons.verified_user_outlined),
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -345,11 +290,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : Icons.visibility_outlined,
                                 ),
                               ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             ),
                             validator: (value) => AppValidators.confirmPassword(
                               value,
@@ -357,9 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ],
-
                         const SizedBox(height: 10),
-
                         if (state.errorMessage != null &&
                             state.errorMessage!.trim().isNotEmpty) ...[
                           Container(
@@ -381,7 +319,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 12),
                         ],
-
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -403,26 +340,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             label: Text(
                               state.isAuthenticating
                                   ? (_isLogin
-                                      ? 'Signing in...'
-                                      : 'Creating account...')
-                                  : (_isLogin ? 'Login' : 'Create account'),
-                            ),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: LivTheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                                      ? l.t('signing_in')
+                                      : l.t('creating_account'))
+                                  : (_isLogin ? l.t('login') : l.t('create_account')),
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
-
-                        const Text(
-                          'Welcome back!',
+                        Text(
+                          l.t('welcome_back'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: LivTheme.muted,
+                            color: isDark ? Colors.white70 : LivTheme.muted,
                             fontSize: 12,
                           ),
                         ),
@@ -434,6 +363,45 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BrandLogo extends StatelessWidget {
+  final double size;
+  const _BrandLogo({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.28),
+      child: Image.asset(
+        'assets/images/LIVLogo.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [LivTheme.primary, LivTheme.accent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(size * 0.28),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.agriculture_rounded,
+                color: Colors.white,
+                size: 34,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -453,7 +421,7 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? LivTheme.primary : Colors.white,
+      color: selected ? LivTheme.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,

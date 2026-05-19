@@ -38,11 +38,14 @@ class LivApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final locale = state.locale;
+    final l = AppLocalizations(locale);
 
     return MaterialApp(
-      title: 'LIV Dashboard',
+      title: l.t('app_name'),
       debugShowCheckedModeBanner: false,
       theme: LivTheme.light,
+      darkTheme: LivTheme.dark,
+      themeMode: state.themeMode,
       locale: Locale(locale.code),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: [
@@ -90,49 +93,30 @@ class SplashGateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
+
     return Scaffold(
-      backgroundColor: LivTheme.bg,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [LivTheme.primary, LivTheme.accent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Center(
-                child: Text(
-                  'L',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 34,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'LIV Smart Farm',
-              style: TextStyle(
+            const _BrandMark(size: 120),
+            const SizedBox(height: 22),
+            Text(
+              l.t('brand_title'),
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: LivTheme.primary,
               ),
             ),
-            const SizedBox(height: 10),
-            const CircularProgressIndicator(),
             const SizedBox(height: 12),
-            const Text(
-              'Restoring session...',
-              style: TextStyle(color: LivTheme.muted),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 14),
+            Text(
+              l.t('restoring_session'),
+              style: const TextStyle(color: LivTheme.muted),
             ),
           ],
         ),
@@ -154,20 +138,21 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
 
-    final tabs = const [
+    final tabs = [
       _TabDef(
-        label: 'Admin',
+        label: l.t('admin_panel'),
         icon: Icons.admin_panel_settings_outlined,
         activeIcon: Icons.admin_panel_settings,
       ),
       _TabDef(
-        label: 'Gateway',
+        label: l.t('nav_gateway'),
         icon: Icons.router_outlined,
         activeIcon: Icons.router,
       ),
       _TabDef(
-        label: 'Settings',
+        label: l.t('nav_settings'),
         icon: Icons.settings_outlined,
         activeIcon: Icons.settings,
       ),
@@ -175,40 +160,16 @@ class _AdminShellState extends State<AdminShell> {
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [LivTheme.primary, LivTheme.accent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: const Center(
-                child: Text(
-                  'A',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
+            const _BrandMark(size: 44),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'ADMIN',
-                  style: TextStyle(
+                Text(
+                  l.t('brand_title'),
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: LivTheme.primary,
@@ -230,46 +191,6 @@ class _AdminShellState extends State<AdminShell> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: TextButton(
-              onPressed: () {
-                final next =
-                    state.locale == AppLocale.en ? AppLocale.ar : AppLocale.en;
-                state.setLocale(next);
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border:
-                      Border.all(color: LivTheme.primary.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(20),
-                  color: LivTheme.primary.withOpacity(0.06),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🌐', style: TextStyle(fontSize: 13)),
-                    const SizedBox(width: 4),
-                    Text(
-                      state.locale == AppLocale.en ? 'AR' : 'EN',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: LivTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Row(
               children: [
@@ -283,7 +204,7 @@ class _AdminShellState extends State<AdminShell> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  state.useDemoData ? 'Demo' : 'Live',
+                  state.useDemoData ? l.t('demo') : l.t('live'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -294,14 +215,14 @@ class _AdminShellState extends State<AdminShell> {
             ),
           ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.t('refresh'),
             onPressed: (state.isAdminLoading || state.isFetchingData)
                 ? null
                 : () => state.refreshLiveData(),
             icon: const Icon(Icons.refresh_rounded),
           ),
           IconButton(
-            tooltip: 'Logout',
+            tooltip: l.t('logout'),
             onPressed: () async {
               await context.read<AppState>().logout();
             },
@@ -321,10 +242,6 @@ class _AdminShellState extends State<AdminShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shadowColor: LivTheme.line,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           for (final t in tabs)
@@ -384,40 +301,16 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [LivTheme.primary, LivTheme.accent],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: const Center(
-                child: Text(
-                  'L',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
+            const _BrandMark(size: 44),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'LIV',
-                  style: TextStyle(
+                Text(
+                  l.t('brand_title'),
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: LivTheme.primary,
@@ -438,46 +331,6 @@ class _AppShellState extends State<AppShell> {
           ],
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: TextButton(
-              onPressed: () {
-                final next =
-                    state.locale == AppLocale.en ? AppLocale.ar : AppLocale.en;
-                state.setLocale(next);
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border:
-                      Border.all(color: LivTheme.primary.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(20),
-                  color: LivTheme.primary.withOpacity(0.06),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🌐', style: TextStyle(fontSize: 13)),
-                    const SizedBox(width: 4),
-                    Text(
-                      state.locale == AppLocale.en ? 'AR' : 'EN',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: LivTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Row(
@@ -503,12 +356,12 @@ class _AppShellState extends State<AppShell> {
             ),
           ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.t('refresh'),
             onPressed: state.isBusy ? null : () => state.refreshLiveData(),
             icon: const Icon(Icons.refresh_rounded),
           ),
           IconButton(
-            tooltip: 'Logout',
+            tooltip: l.t('logout'),
             onPressed: () async {
               await context.read<AppState>().logout();
             },
@@ -530,10 +383,6 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shadowColor: LivTheme.line,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           for (final t in tabs)
@@ -543,6 +392,44 @@ class _AppShellState extends State<AppShell> {
               label: t.label,
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _BrandMark extends StatelessWidget {
+  final double size;
+  const _BrandMark({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.26),
+      child: Image.asset(
+        'assets/images/LIVLogo.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [LivTheme.primary, LivTheme.accent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(size * 0.26),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.agriculture_rounded,
+                color: Colors.white,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

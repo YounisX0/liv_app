@@ -37,6 +37,7 @@ class _CowsScreenState extends State<CowsScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final l = AppLocalizations(state.locale);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final q = _query.trim().toLowerCase();
 
     final filtered = state.cows.where((c) {
@@ -56,14 +57,17 @@ class _CowsScreenState extends State<CowsScreen> {
         Column(
           children: [
             Container(
-              color: Colors.white,
+              color: isDark ? LivTheme.darkBg : Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: TextField(
                 decoration: InputDecoration(
                   hintText: l.t('search_hint'),
-                  prefixIcon: const Icon(Icons.search, color: LivTheme.muted),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: isDark ? LivTheme.darkMuted : LivTheme.muted,
+                  ),
                   filled: true,
-                  fillColor: LivTheme.bg,
+                  fillColor: isDark ? LivTheme.darkCardSoft : LivTheme.bg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -119,7 +123,7 @@ class _CowsScreenState extends State<CowsScreen> {
               backgroundColor: LivTheme.primary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
-              label: const Text('Add Cow'),
+              label: Text(l.t('add_cow')),
             ),
           ),
       ],
@@ -178,6 +182,8 @@ class _AddCowScreenState extends State<AddCowScreen> {
     if (_submitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final l = AppLocalizations(context.read<AppState>().locale);
+
     setState(() {
       _submitting = true;
       _localError = null;
@@ -198,8 +204,8 @@ class _AddCowScreenState extends State<AddCowScreen> {
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cow added successfully.'),
+        SnackBar(
+          content: Text(l.t('add_cow_success')),
         ),
       );
       Navigator.of(context).pop();
@@ -209,23 +215,20 @@ class _AddCowScreenState extends State<AddCowScreen> {
     setState(() {
       _submitting = false;
       _localError =
-          app.vetCowMutationError ?? 'Failed to add cow. Please try again.';
+          app.vetCowMutationError ?? l.t('add_cow_failed');
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
+    final l = AppLocalizations(app.locale);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: LivTheme.bg,
+      backgroundColor: isDark ? LivTheme.darkBg : LivTheme.bg,
       appBar: AppBar(
-        title: const Text('Add Cow'),
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-        ),
+        title: Text(l.t('add_cow')),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -241,13 +244,13 @@ class _AddCowScreenState extends State<AddCowScreen> {
                     TextFormField(
                       controller: _cowIdCtrl,
                       enabled: !_submitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Cow ID',
+                      decoration: InputDecoration(
+                        labelText: l.t('cow_id'),
                         hintText: 'COW-909',
                       ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Cow ID is required';
+                          return l.t('cow_id_required');
                         }
                         return null;
                       },
@@ -256,12 +259,12 @@ class _AddCowScreenState extends State<AddCowScreen> {
                     TextFormField(
                       controller: _nameCtrl,
                       enabled: !_submitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
+                      decoration: InputDecoration(
+                        labelText: l.t('name'),
                       ),
                       validator: (value) {
                         if ((value ?? '').trim().isEmpty) {
-                          return 'Name is required';
+                          return l.t('name_required');
                         }
                         return null;
                       },
@@ -270,16 +273,16 @@ class _AddCowScreenState extends State<AddCowScreen> {
                     TextFormField(
                       controller: _tagCtrl,
                       enabled: !_submitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Tag Number',
+                      decoration: InputDecoration(
+                        labelText: l.t('tag_number'),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _breedCtrl,
                       enabled: !_submitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Breed',
+                      decoration: InputDecoration(
+                        labelText: l.t('breed'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -287,13 +290,13 @@ class _AddCowScreenState extends State<AddCowScreen> {
                       controller: _ageMonthsCtrl,
                       enabled: !_submitting,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Age (months)',
+                      decoration: InputDecoration(
+                        labelText: l.t('age_months'),
                       ),
                       validator: (value) {
                         final parsed = int.tryParse((value ?? '').trim());
                         if (parsed == null || parsed < 0) {
-                          return 'Enter a valid age in months';
+                          return l.t('age_months_invalid');
                         }
                         return null;
                       },
@@ -302,8 +305,8 @@ class _AddCowScreenState extends State<AddCowScreen> {
                     TextFormField(
                       controller: _deviceCtrl,
                       enabled: !_submitting,
-                      decoration: const InputDecoration(
-                        labelText: 'Device ID',
+                      decoration: InputDecoration(
+                        labelText: l.t('device_id'),
                       ),
                     ),
                     if (((_localError ?? app.vetCowMutationError) ?? '')
@@ -330,7 +333,7 @@ class _AddCowScreenState extends State<AddCowScreen> {
                             onPressed: _submitting
                                 ? null
                                 : () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
+                            child: Text(l.t('cancel')),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -346,7 +349,7 @@ class _AddCowScreenState extends State<AddCowScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Text('Add'),
+                                : Text(l.t('add')),
                           ),
                         ),
                       ],
@@ -377,6 +380,11 @@ class _CowCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.read<AppState>();
     final device = state.devices.where((d) => d.id == cow.deviceId).firstOrNull;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? LivTheme.darkMuted : LivTheme.muted;
+    final textColor = isDark ? LivTheme.darkText : LivTheme.text;
+    final chipBg = isDark ? LivTheme.darkCardSoft : LivTheme.bg;
+    final chipBorder = isDark ? LivTheme.darkLine : LivTheme.line;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -397,10 +405,12 @@ class _CowCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: LivTheme.primary.withOpacity(0.08),
+                      color: LivTheme.primary.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(child: Text('🐄', style: TextStyle(fontSize: 24))),
+                    child: const Center(
+                      child: Text('🐄', style: TextStyle(fontSize: 24)),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -414,9 +424,10 @@ class _CowCard extends StatelessWidget {
                           children: [
                             Text(
                               cow.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
+                                color: textColor,
                               ),
                             ),
                             if (pendingCount > 0)
@@ -425,7 +436,7 @@ class _CowCard extends StatelessWidget {
                         ),
                         Text(
                           '${cow.breed} · ${cow.id}',
-                          style: const TextStyle(fontSize: 12, color: LivTheme.muted),
+                          style: TextStyle(fontSize: 12, color: muted),
                         ),
                       ],
                     ),
@@ -441,6 +452,9 @@ class _CowCard extends StatelessWidget {
                     value: cow.vitals.tempC != null
                         ? '${cow.vitals.tempC!.toStringAsFixed(1)}°C'
                         : l.t('no_data'),
+                    background: chipBg,
+                    borderColor: chipBorder,
+                    textColor: textColor,
                   ),
                   const SizedBox(width: 8),
                   _VitalChip(
@@ -448,6 +462,9 @@ class _CowCard extends StatelessWidget {
                     value: cow.vitals.hrBpm != null
                         ? '${cow.vitals.hrBpm!.toInt()} bpm'
                         : l.t('no_data'),
+                    background: chipBg,
+                    borderColor: chipBorder,
+                    textColor: textColor,
                   ),
                   const SizedBox(width: 8),
                   _VitalChip(
@@ -455,6 +472,9 @@ class _CowCard extends StatelessWidget {
                     value: cow.vitals.spO2 != null
                         ? '${cow.vitals.spO2!.toInt()}%'
                         : l.t('no_data'),
+                    background: chipBg,
+                    borderColor: chipBorder,
+                    textColor: textColor,
                   ),
                 ],
               ),
@@ -470,7 +490,7 @@ class _CowCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${device.battery}%',
-                      style: const TextStyle(fontSize: 12, color: LivTheme.muted),
+                      style: TextStyle(fontSize: 12, color: muted),
                     ),
                     const SizedBox(width: 12),
                   ],
@@ -494,11 +514,11 @@ class _CowCard extends StatelessWidget {
                   ],
                   const Spacer(),
                   Text(
-                    'Parity ${cow.parity}',
-                    style: const TextStyle(fontSize: 11, color: LivTheme.muted),
+                    '${l.t('parity')} ${cow.parity}',
+                    style: TextStyle(fontSize: 11, color: muted),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, size: 18, color: LivTheme.muted),
+                  Icon(Icons.chevron_right, size: 18, color: muted),
                 ],
               ),
             ],
@@ -538,20 +558,38 @@ class _PendingCountBadge extends StatelessWidget {
 class _VitalChip extends StatelessWidget {
   final String icon;
   final String value;
-  const _VitalChip({required this.icon, required this.value});
+  final Color background;
+  final Color borderColor;
+  final Color textColor;
+
+  const _VitalChip({
+    required this.icon,
+    required this.value,
+    required this.background,
+    required this.borderColor,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: LivTheme.bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: LivTheme.line),
-      ),
-      child: Text(
-        '$icon $value',
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Text(
+          '$icon $value',
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
       ),
     );
   }
