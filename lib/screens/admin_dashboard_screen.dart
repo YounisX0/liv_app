@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/api_models.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
@@ -24,9 +25,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
   }
 
+  String _roleLabel(AppLocalizations l, String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return l.t('role_admin');
+      case 'veterinarian':
+        return l.t('role_veterinarian');
+      default:
+        return l.t('role_farmer');
+    }
+  }
+
+  String? _validateRequired(
+    String? value,
+    String fieldLabel,
+    AppLocalizations l,
+  ) {
+    if ((value ?? '').trim().isEmpty) {
+      return l.t('required_field').replaceAll('{field}', fieldLabel);
+    }
+    return null;
+  }
+
+  String? _validateEmail(
+    String? value,
+    AppLocalizations l,
+  ) {
+    final email = (value ?? '').trim();
+    if (email.isEmpty) {
+      return l.t('required_field').replaceAll('{field}', l.t('email'));
+    }
+    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+    if (!ok) return l.t('email_invalid');
+    return null;
+  }
+
+  String? _validatePassword(
+    String? value,
+    AppLocalizations l, {
+    required bool requiredPassword,
+  }) {
+    final password = (value ?? '').trim();
+
+    if (!requiredPassword && password.isEmpty) return null;
+    if (requiredPassword && password.isEmpty) {
+      return l.t('required_field').replaceAll('{field}', l.t('password'));
+    }
+
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(password);
+    final hasDigit = RegExp(r'\d').hasMatch(password);
+
+    if (password.length < 8 || !hasLetter || !hasDigit) {
+      return l.t('password_strength_admin');
+    }
+    return null;
+  }
+
+  String? _validatePositiveInt(
+    String? value,
+    String fieldLabel,
+    AppLocalizations l,
+  ) {
+    final raw = (value ?? '').trim();
+    if (raw.isEmpty) {
+      return l.t('required_field').replaceAll('{field}', fieldLabel);
+    }
+    final parsed = int.tryParse(raw);
+    if (parsed == null || parsed < 0) {
+      return l.t('invalid_positive_number').replaceAll('{field}', fieldLabel);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations(state.locale);
     final overview = state.adminOverview;
 
     final recentAlerts = [...state.alerts]
@@ -56,30 +130,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ),
             ),
-
           if (state.isAdminLoading || state.isFetchingData)
             const LinearProgressIndicator(),
           if (state.isAdminLoading || state.isFetchingData)
             const SizedBox(height: 12),
-
-          const Text(
-            'Admin Overview',
-            style: TextStyle(
+          Text(
+            l.t('admin_overview_title'),
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
               color: LivTheme.primary,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Manage users and cows across the whole system.',
-            style: TextStyle(
+          Text(
+            l.t('admin_overview_subtitle'),
+            style: const TextStyle(
               color: LivTheme.muted,
               fontSize: 13,
             ),
           ),
           const SizedBox(height: 16),
-
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -89,35 +160,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             childAspectRatio: 1.15,
             children: [
               KpiCard(
-                label: 'Total users',
+                label: l.t('total_users'),
                 value: '${overview?.totalUsers ?? 0}',
-                hint: 'Registered accounts',
+                hint: l.t('registered_accounts'),
                 valueColor: LivTheme.primary,
               ),
               KpiCard(
-                label: 'Total cows',
+                label: l.t('total_cows'),
                 value: '${overview?.totalCows ?? 0}',
-                hint: 'Managed livestock',
+                hint: l.t('managed_livestock'),
                 valueColor: LivTheme.accent,
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
-          const _AdminSectionHeaderPlain(
-            title: 'Recent Alerts',
+          _AdminSectionHeaderPlain(
+            title: l.t('recent_alerts_title'),
           ),
           const SizedBox(height: 8),
           if (topAlerts.isEmpty)
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: LivTheme.ok),
-                    SizedBox(width: 10),
-                    Text('No alerts at the moment.'),
+                    const Icon(Icons.check_circle, color: LivTheme.ok),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(l.t('no_alerts_at_moment'))),
                   ],
                 ),
               ),
@@ -126,14 +195,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             (alert) => _AdminAlertCard(
               alert: alert,
               cows: state.cows,
+              l: l,
             ),
           ),
-
           const SizedBox(height: 24),
-
           _AdminSectionHeader(
-            title: 'Users',
-            actionLabel: 'Add user',
+            title: l.t('users_title'),
+            actionLabel: l.t('add_user'),
             onAction: () => _showUserDialog(context),
           ),
           const SizedBox(height: 8),
@@ -142,13 +210,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             currentUserId: state.currentUser?.userId,
             onEdit: (user) => _showUserDialog(context, user: user),
             onDelete: (user) => _confirmDeleteUser(context, user),
+            l: l,
+            roleLabelBuilder: _roleLabel,
           ),
-
           const SizedBox(height: 24),
-
           _AdminSectionHeader(
-            title: 'Cows',
-            actionLabel: 'Add cow',
+            title: l.t('cows_title'),
+            actionLabel: l.t('add_cow'),
             onAction: () => _showCowDialog(context),
           ),
           const SizedBox(height: 8),
@@ -156,8 +224,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             cows: state.adminCows,
             onEdit: (cow) => _showCowDialog(context, cow: cow),
             onDelete: (cow) => _confirmDeleteCow(context, cow),
+            l: l,
           ),
-
           const SizedBox(height: 40),
         ],
       ),
@@ -176,6 +244,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     ApiUser? user,
   }) async {
     final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
     final isEdit = user != null;
 
     final formKey = GlobalKey<FormState>();
@@ -194,7 +263,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return StatefulBuilder(
           builder: (ctx, setLocalState) {
             return AlertDialog(
-              title: Text(isEdit ? 'Edit user' : 'Add user'),
+              title: Text(isEdit ? l.t('edit_user') : l.t('add_user')),
               content: SizedBox(
                 width: 420,
                 child: Form(
@@ -206,20 +275,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         TextFormField(
                           controller: fullNameCtrl,
                           textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Full name',
+                          decoration: InputDecoration(
+                            labelText: l.t('full_name'),
                           ),
-                          validator: AppValidators.fullName,
+                          validator: (value) =>
+                              _validateRequired(value, l.t('full_name'), l),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
+                          decoration: InputDecoration(
+                            labelText: l.t('email'),
                           ),
-                          validator: AppValidators.email,
+                          validator: (value) => _validateEmail(value, l),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
@@ -228,11 +298,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
                             labelText: isEdit
-                                ? 'Password (leave empty to keep unchanged)'
-                                : 'Password',
+                                ? l.t('password_optional_keep')
+                                : l.t('password'),
                             helperText: isEdit
-                                ? 'Only enter a new password if you want to change it.'
-                                : 'At least 8 characters with letters and numbers.',
+                                ? l.t('password_optional_helper')
+                                : l.t('password_hint'),
                             suffixIcon: IconButton(
                               onPressed: () {
                                 setLocalState(() {
@@ -246,46 +316,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ),
                             ),
                           ),
-                          validator: (value) {
-                            if (!isEdit) {
-                              return AppValidators.strongPassword(value);
-                            }
-                            if ((value ?? '').trim().isEmpty) {
-                              return null;
-                            }
-                            return AppValidators.strongPassword(value);
-                          },
+                          validator: (value) => _validatePassword(
+                            value,
+                            l,
+                            requiredPassword: !isEdit,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: farmIdCtrl,
                           textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Farm ID',
+                          decoration: InputDecoration(
+                            labelText: l.t('farm_id'),
                           ),
-                          validator: (value) => AppValidators.requiredField(
-                            value,
-                            fieldName: 'Farm ID',
-                          ),
+                          validator: (value) =>
+                              _validateRequired(value, l.t('farm_id'), l),
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           value: role,
-                          decoration: const InputDecoration(
-                            labelText: 'Role',
+                          decoration: InputDecoration(
+                            labelText: l.t('role'),
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 'farmer',
-                              child: Text('Farmer'),
+                              child: Text(l.t('role_farmer')),
                             ),
                             DropdownMenuItem(
                               value: 'veterinarian',
-                              child: Text('Veterinarian'),
+                              child: Text(l.t('role_veterinarian')),
                             ),
                             DropdownMenuItem(
                               value: 'admin',
-                              child: Text('Admin'),
+                              child: Text(l.t('role_admin')),
                             ),
                           ],
                           onChanged: (value) {
@@ -293,10 +357,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               setLocalState(() => role = value);
                             }
                           },
-                          validator: (value) => AppValidators.requiredField(
-                            value,
-                            fieldName: 'Role',
-                          ),
+                          validator: (value) =>
+                              _validateRequired(value, l.t('role'), l),
                         ),
                       ],
                     ),
@@ -306,7 +368,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
+                  child: Text(l.t('cancel')),
                 ),
                 FilledButton(
                   onPressed: () {
@@ -314,7 +376,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     if (!valid) return;
                     Navigator.pop(ctx, true);
                   },
-                  child: Text(isEdit ? 'Save' : 'Create'),
+                  child: Text(isEdit ? l.t('save') : l.t('create')),
                 ),
               ],
             );
@@ -356,7 +418,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (success) {
       _showSuccess(
-        isEdit ? 'User updated successfully.' : 'User added successfully.',
+        isEdit ? l.t('user_updated_success') : l.t('user_added_success'),
       );
     } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -370,6 +432,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     ApiCow? cow,
   }) async {
     final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
     final isEdit = cow != null;
 
     final formKey = GlobalKey<FormState>();
@@ -387,7 +450,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Edit cow' : 'Add cow'),
+          title: Text(isEdit ? l.t('edit_cow') : l.t('add_cow')),
           content: SizedBox(
             width: 420,
             child: Form(
@@ -400,86 +463,72 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       controller: cowIdCtrl,
                       readOnly: isEdit,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Cow ID',
+                      decoration: InputDecoration(
+                        labelText: l.t('cow_id'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Cow ID',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('cow_id'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: nameCtrl,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
+                      decoration: InputDecoration(
+                        labelText: l.t('name'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Name',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('name'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: tagNumberCtrl,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Tag number',
+                      decoration: InputDecoration(
+                        labelText: l.t('tag_number'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Tag number',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('tag_number'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: breedCtrl,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Breed',
+                      decoration: InputDecoration(
+                        labelText: l.t('breed'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Breed',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('breed'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: ageMonthsCtrl,
                       keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Age in months',
+                      decoration: InputDecoration(
+                        labelText: l.t('age_months'),
                       ),
-                      validator: (value) => AppValidators.positiveInteger(
-                        value,
-                        fieldName: 'Age in months',
-                      ),
+                      validator: (value) =>
+                          _validatePositiveInt(value, l.t('age_months'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: deviceIdCtrl,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Device ID',
+                      decoration: InputDecoration(
+                        labelText: l.t('device_id'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Device ID',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('device_id'), l),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: farmIdCtrl,
                       textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Farm ID',
+                      decoration: InputDecoration(
+                        labelText: l.t('farm_id'),
                       ),
-                      validator: (value) => AppValidators.requiredField(
-                        value,
-                        fieldName: 'Farm ID',
-                      ),
+                      validator: (value) =>
+                          _validateRequired(value, l.t('farm_id'), l),
                     ),
                   ],
                 ),
@@ -489,7 +538,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(l.t('cancel')),
             ),
             FilledButton(
               onPressed: () {
@@ -497,7 +546,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 if (!valid) return;
                 Navigator.pop(ctx, true);
               },
-              child: Text(isEdit ? 'Save' : 'Create'),
+              child: Text(isEdit ? l.t('save') : l.t('create')),
             ),
           ],
         );
@@ -535,7 +584,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (success) {
       _showSuccess(
-        isEdit ? 'Cow updated successfully.' : 'Cow added successfully.',
+        isEdit ? l.t('cow_updated_success') : l.t('cow_added_success'),
       );
     } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -549,19 +598,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     ApiUser user,
   ) async {
     final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete user'),
-        content: Text('Are you sure you want to delete ${user.fullName}?'),
+        title: Text(l.t('delete_user_confirm_title')),
+        content: Text(
+          l.t('delete_user_confirm_body').replaceAll('{name}', user.fullName),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.t('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(l.t('delete')),
           ),
         ],
       ),
@@ -573,7 +626,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!mounted) return;
 
     if (success) {
-      _showSuccess('User deleted successfully.');
+      _showSuccess(l.t('user_deleted_success'));
     } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
@@ -586,19 +639,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     ApiCow cow,
   ) async {
     final state = context.read<AppState>();
+    final l = AppLocalizations(state.locale);
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete cow'),
-        content: Text('Are you sure you want to delete ${cow.name}?'),
+        title: Text(l.t('delete_cow_confirm_title')),
+        content: Text(
+          l.t('delete_cow_confirm_body').replaceAll('{name}', cow.name),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.t('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(l.t('delete')),
           ),
         ],
       ),
@@ -610,7 +667,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!mounted) return;
 
     if (success) {
-      _showSuccess('Cow deleted successfully.');
+      _showSuccess(l.t('cow_deleted_success'));
     } else if (state.adminErrorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.adminErrorMessage!)),
@@ -677,15 +734,62 @@ class _AdminSectionHeaderPlain extends StatelessWidget {
 class _AdminAlertCard extends StatelessWidget {
   final FarmAlert alert;
   final List<Cow> cows;
+  final AppLocalizations l;
 
   const _AdminAlertCard({
     required this.alert,
     required this.cows,
+    required this.l,
   });
+
+  String _statusLabel(String raw) {
+    final v = raw.trim().toLowerCase();
+    if (v == 'fever') return l.t('status_fever');
+    if (v == 'heat stress') return l.t('status_heat_stress');
+    if (v == 'low spo2') return l.t('status_low_spo2');
+    if (v == 'healthy') return l.t('status_healthy');
+    return raw;
+  }
+
+  String _localizedTitle() {
+    final raw = alert.title.trim();
+    if (raw.toLowerCase().endsWith(' detected')) {
+      final status = raw.substring(0, raw.length - ' detected'.length).trim();
+      return l
+          .t('alert_detected_with_status')
+          .replaceAll('{status}', _statusLabel(status));
+    }
+    return raw;
+  }
+
+  String _localizedDetails(String cowName) {
+    final raw = alert.details.trim();
+    final lower = raw.toLowerCase();
+
+    if (lower.startsWith('latest readings indicate ') && lower.endsWith('.')) {
+      final middle = raw.substring(
+        'Latest readings indicate '.length,
+        raw.length - 1,
+      );
+      final splitToken = ' for ';
+      final idx = middle.lastIndexOf(splitToken);
+      if (idx != -1) {
+        final status = middle.substring(0, idx).trim();
+        final name = middle.substring(idx + splitToken.length).trim();
+        return l
+            .t('alert_latest_readings_status_for_name')
+            .replaceAll('{status}', _statusLabel(status))
+            .replaceAll('{name}', name.isEmpty ? cowName : name);
+      }
+    }
+
+    return raw;
+  }
 
   @override
   Widget build(BuildContext context) {
     final cow = cows.where((c) => c.id == alert.cowId).firstOrNull;
+    final cowName = cow?.name ?? '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -701,7 +805,7 @@ class _AdminAlertCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    alert.title,
+                    _localizedTitle(),
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -720,7 +824,7 @@ class _AdminAlertCard extends StatelessWidget {
                   ],
                   const SizedBox(height: 4),
                   Text(
-                    alert.details,
+                    _localizedDetails(cowName),
                     style: const TextStyle(
                       fontSize: 12,
                       color: LivTheme.muted,
@@ -741,21 +845,25 @@ class _UsersTable extends StatelessWidget {
   final String? currentUserId;
   final ValueChanged<ApiUser> onEdit;
   final ValueChanged<ApiUser> onDelete;
+  final AppLocalizations l;
+  final String Function(AppLocalizations l, String role) roleLabelBuilder;
 
   const _UsersTable({
     required this.users,
     required this.currentUserId,
     required this.onEdit,
     required this.onDelete,
+    required this.l,
+    required this.roleLabelBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
     if (users.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No users found.'),
+          padding: const EdgeInsets.all(16),
+          child: Text(l.t('no_users_found')),
         ),
       );
     }
@@ -765,13 +873,13 @@ class _UsersTable extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(8),
         child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Full name')),
-            DataColumn(label: Text('Email')),
-            DataColumn(label: Text('Role')),
-            DataColumn(label: Text('Farm')),
-            DataColumn(label: Text('Created')),
-            DataColumn(label: Text('Actions')),
+          columns: [
+            DataColumn(label: Text(l.t('full_name'))),
+            DataColumn(label: Text(l.t('email'))),
+            DataColumn(label: Text(l.t('role'))),
+            DataColumn(label: Text(l.t('farm'))),
+            DataColumn(label: Text(l.t('created'))),
+            DataColumn(label: Text(l.t('actions'))),
           ],
           rows: users.map((user) {
             final isSelf = currentUserId == user.userId;
@@ -779,19 +887,21 @@ class _UsersTable extends StatelessWidget {
               cells: [
                 DataCell(Text(user.fullName)),
                 DataCell(Text(user.email)),
-                DataCell(Text(user.role)),
+                DataCell(Text(roleLabelBuilder(l, user.role))),
                 DataCell(Text(user.farmId)),
                 DataCell(Text(user.createdAt.isEmpty ? '--' : user.createdAt)),
                 DataCell(
                   Row(
                     children: [
                       IconButton(
-                        tooltip: 'Edit',
+                        tooltip: l.t('edit'),
                         onPressed: () => onEdit(user),
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
-                        tooltip: isSelf ? 'Cannot delete yourself' : 'Delete',
+                        tooltip: isSelf
+                            ? l.t('cannot_delete_yourself')
+                            : l.t('delete'),
                         onPressed: isSelf ? null : () => onDelete(user),
                         icon: const Icon(Icons.delete_outline),
                       ),
@@ -811,20 +921,22 @@ class _CowsTable extends StatelessWidget {
   final List<ApiCow> cows;
   final ValueChanged<ApiCow> onEdit;
   final ValueChanged<ApiCow> onDelete;
+  final AppLocalizations l;
 
   const _CowsTable({
     required this.cows,
     required this.onEdit,
     required this.onDelete,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
     if (cows.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No cows found.'),
+          padding: const EdgeInsets.all(16),
+          child: Text(l.t('no_cows_found')),
         ),
       );
     }
@@ -834,15 +946,15 @@ class _CowsTable extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(8),
         child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Cow ID')),
-            DataColumn(label: Text('Name')),
-            DataColumn(label: Text('Tag')),
-            DataColumn(label: Text('Breed')),
-            DataColumn(label: Text('Age')),
-            DataColumn(label: Text('Farm')),
-            DataColumn(label: Text('Device')),
-            DataColumn(label: Text('Actions')),
+          columns: [
+            DataColumn(label: Text(l.t('cow_id'))),
+            DataColumn(label: Text(l.t('name'))),
+            DataColumn(label: Text(l.t('tag'))),
+            DataColumn(label: Text(l.t('breed'))),
+            DataColumn(label: Text(l.t('age'))),
+            DataColumn(label: Text(l.t('farm'))),
+            DataColumn(label: Text(l.t('device_id'))),
+            DataColumn(label: Text(l.t('actions'))),
           ],
           rows: cows.map((cow) {
             return DataRow(
@@ -858,12 +970,12 @@ class _CowsTable extends StatelessWidget {
                   Row(
                     children: [
                       IconButton(
-                        tooltip: 'Edit',
+                        tooltip: l.t('edit'),
                         onPressed: () => onEdit(cow),
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       IconButton(
-                        tooltip: 'Delete',
+                        tooltip: l.t('delete'),
                         onPressed: () => onDelete(cow),
                         icon: const Icon(Icons.delete_outline),
                       ),

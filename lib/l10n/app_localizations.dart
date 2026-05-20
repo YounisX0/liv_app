@@ -183,7 +183,6 @@ class AppLocalizations {
       'top_candidates': 'Top candidates',
       'category': 'Category',
 
-      // Added for the exact breeding_screen.dart you sent
       'breeding_no_cows':
           'No cows available yet. Add or sync cows first to generate breeding recommendations.',
       'breeding_step_select_cow': '1. Select cow',
@@ -304,6 +303,61 @@ class AppLocalizations {
       'create_account': 'Create account',
       'account_created_login_ok': 'Account created and logged in successfully.',
       'welcome_back': 'Welcome back!',
+
+      // Admin panel keys
+      'admin_overview_title': 'Admin Overview',
+      'admin_overview_subtitle':
+          'Manage users and cows across the whole system.',
+      'registered_accounts': 'Registered accounts',
+      'managed_livestock': 'Managed livestock',
+      'recent_alerts_title': 'Recent Alerts',
+      'no_alerts_at_moment': 'No alerts at the moment.',
+      'users_title': 'Users',
+      'cows_title': 'Cows',
+      'add_user': 'Add user',
+      'edit_user': 'Edit user',
+      'delete_user': 'Delete user',
+      'edit_cow': 'Edit cow',
+      'delete_cow': 'Delete cow',
+      'create': 'Create',
+      'save': 'Save',
+      'actions': 'Actions',
+      'created': 'Created',
+      'tag': 'Tag',
+      'age': 'Age',
+      'farm_id': 'Farm ID',
+      'password_optional_keep':
+          'Password (leave empty to keep unchanged)',
+      'password_optional_helper':
+          'Only enter a new password if you want to change it.',
+      'required_field': '{field} is required',
+      'invalid_positive_number': 'Enter a valid {field}',
+      'password_strength_admin':
+          'Password must be at least 8 characters and include letters and numbers.',
+      'delete_user_confirm_title': 'Delete user',
+      'delete_user_confirm_body':
+          'Are you sure you want to delete {name}?',
+      'delete_cow_confirm_title': 'Delete cow',
+      'delete_cow_confirm_body':
+          'Are you sure you want to delete {name}?',
+      'user_added_success': 'User added successfully.',
+      'user_updated_success': 'User updated successfully.',
+      'user_deleted_success': 'User deleted successfully.',
+      'cow_added_success': 'Cow added successfully.',
+      'cow_updated_success': 'Cow updated successfully.',
+      'cow_deleted_success': 'Cow deleted successfully.',
+      'no_users_found': 'No users found.',
+      'no_cows_found': 'No cows found.',
+      'edit': 'Edit',
+      'delete': 'Delete',
+      'cannot_delete_yourself': 'Cannot delete yourself',
+      'status_fever': 'Fever',
+      'status_heat_stress': 'Heat Stress',
+      'status_low_spo2': 'Low SpO2',
+      'status_healthy': 'Healthy',
+      'alert_detected_with_status': '{status} detected',
+      'alert_latest_readings_status_for_name':
+          'Latest readings indicate {status} for {name}.',
     },
     AppLocale.ar: {
       'app_name': 'لوحة LIV',
@@ -462,7 +516,6 @@ class AppLocalizations {
       'top_candidates': 'أفضل المرشحين',
       'category': 'الفئة',
 
-      // Added for the exact breeding_screen.dart you sent
       'breeding_no_cows':
           'لا توجد أبقار متاحة حالياً. أضف أبقاراً أو قم بالمزامنة أولاً لتوليد توصيات التربية.',
       'breeding_step_select_cow': '١. اختر بقرة',
@@ -583,6 +636,59 @@ class AppLocalizations {
       'create_account': 'إنشاء حساب',
       'account_created_login_ok': 'تم إنشاء الحساب وتسجيل الدخول بنجاح.',
       'welcome_back': 'مرحباً بعودتك!',
+
+      // Admin panel keys
+      'admin_overview_title': 'نظرة عامة للمدير',
+      'admin_overview_subtitle':
+          'إدارة المستخدمين والأبقار على مستوى النظام بالكامل.',
+      'registered_accounts': 'الحسابات المسجلة',
+      'managed_livestock': 'الثروة الحيوانية المُدارة',
+      'recent_alerts_title': 'التنبيهات الأخيرة',
+      'no_alerts_at_moment': 'لا توجد تنبيهات حالياً.',
+      'users_title': 'المستخدمون',
+      'cows_title': 'الأبقار',
+      'add_user': 'إضافة مستخدم',
+      'edit_user': 'تعديل المستخدم',
+      'delete_user': 'حذف المستخدم',
+      'edit_cow': 'تعديل البقرة',
+      'delete_cow': 'حذف البقرة',
+      'create': 'إنشاء',
+      'save': 'حفظ',
+      'actions': 'الإجراءات',
+      'created': 'تاريخ الإنشاء',
+      'tag': 'العلامة',
+      'age': 'العمر',
+      'farm_id': 'معرّف المزرعة',
+      'password_optional_keep':
+          'كلمة المرور (اتركها فارغة للإبقاء عليها دون تغيير)',
+      'password_optional_helper':
+          'أدخل كلمة مرور جديدة فقط إذا كنت تريد تغييرها.',
+      'required_field': '{field} مطلوب',
+      'invalid_positive_number': 'أدخل {field} صحيحاً',
+      'password_strength_admin':
+          'يجب أن تكون كلمة المرور 8 أحرف على الأقل وتحتوي على حروف وأرقام.',
+      'delete_user_confirm_title': 'حذف المستخدم',
+      'delete_user_confirm_body': 'هل أنت متأكد من حذف {name}؟',
+      'delete_cow_confirm_title': 'حذف البقرة',
+      'delete_cow_confirm_body': 'هل أنت متأكد من حذف {name}؟',
+      'user_added_success': 'تمت إضافة المستخدم بنجاح.',
+      'user_updated_success': 'تم تحديث المستخدم بنجاح.',
+      'user_deleted_success': 'تم حذف المستخدم بنجاح.',
+      'cow_added_success': 'تمت إضافة البقرة بنجاح.',
+      'cow_updated_success': 'تم تحديث البقرة بنجاح.',
+      'cow_deleted_success': 'تم حذف البقرة بنجاح.',
+      'no_users_found': 'لا يوجد مستخدمون.',
+      'no_cows_found': 'لا توجد أبقار.',
+      'edit': 'تعديل',
+      'delete': 'حذف',
+      'cannot_delete_yourself': 'لا يمكنك حذف نفسك',
+      'status_fever': 'حمى',
+      'status_heat_stress': 'إجهاد حراري',
+      'status_low_spo2': 'انخفاض الأكسجين',
+      'status_healthy': 'سليمة',
+      'alert_detected_with_status': 'تم اكتشاف {status}',
+      'alert_latest_readings_status_for_name':
+          'تشير آخر القراءات إلى {status} للحيوان {name}.',
     },
   };
 }
